@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061120">
+  <script>
+    // Apply the preference before styles load to avoid a flash of the wrong theme.
+    (() => {
+      let theme;
+      try { theme = localStorage.getItem('openfunnel-theme'); } catch {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#061120' : '#f5f8ff';
+    })();
+  </script>
+  <meta name="description" content="OpenFunnel: una plataforma open source en desarrollo para construir flujos de negocio con IA. Ventas, soporte y comercio sobre un mismo motor.">
+  <title>OpenFunnel — Conversaciones que avanzan</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23061120'/%3E%3Cpath d='M10 11h20L23 22v8l-6-3v-5z' fill='%237c93ff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./theme.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><symbol id="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H9l-5 4V4Z"/><path d="M8 10h.01M12 10h.01M16 10h.01" stroke-width="3"/></symbol><symbol id="icon-document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/></symbol><symbol id="icon-person" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2Z"/></symbol><symbol id="icon-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21v-6h3v6M11 21V9h3v12M17 21V3h3v18"/></symbol><symbol id="icon-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-3-3-7-3-10-2v15c4-1 7 0 10 2 3-2 6-3 10-2V4c-3-1-7-1-10 2Zm0 0v15"/></symbol><symbol id="icon-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m14 5 3 3 4-4a7 7 0 0 1-9 9l-7 8-3-3 8-7a7 7 0 0 1 9-9Z"/></symbol><symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L20 5" stroke-width="3"/></symbol><symbol id="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h3l3 13h11l3-10H6"/><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></symbol><symbol id="icon-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol><symbol id="icon-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 6v9l-10 6L2 17V8Zm0 12L2 8m10 6 10-6m-10 6v9M7 5l10 6"/></symbol><symbol id="icon-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/><path d="m11 6-6 12m8-12 6 12M6 20h12"/></symbol><symbol id="icon-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m14 2-11 12h8l-1 8L21 9h-8Z"/></symbol><symbol id="icon-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h12M9 12h12M9 19h12M3 5h.01M3 12h.01M3 19h.01" stroke-width="2.5"/></symbol></defs></svg>
+  <header class="site-header container">
+    <a class="wordmark" href="#inicio" aria-label="OpenFunnel, inicio">Open<span>Funnel</span></a>
+    <nav aria-label="Navegación principal">
+      <a href="#concepto">Concepto</a>
+      <a href="#funnels">Funnels</a>
+      <a href="#comunidad">Comunidad</a>
+    </nav>
+    <div class="header-actions">
+      <button class="theme-toggle button-outline" type="button" aria-label="Modo oscuro" aria-pressed="false" title="Modo oscuro" hidden>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13Z"/></svg>
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg>
+      </button>
+      <a class="button button-small button-outline header-cta" href="https://github.com/chrisenprod/openfunnel_kit" target="_blank" rel="noopener noreferrer">Ver en GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <section class="hero container" id="inicio" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> Open source · En desarrollo</p>
+        <h1 id="hero-title">Conversaciones<br class="desktop-break"> que avanzan.<br><span class="gradient-text">Resultados<br class="desktop-break"> que importan.</span></h1>
+        <p class="hero-description">Una plataforma abierta para construir flujos de negocio con IA. Ventas, soporte y comercio sobre un mismo motor.</p>
+        <div class="actions">
+          <a class="button button-primary" href="https://github.com/chrisenprod/openfunnel_kit" target="_blank" rel="noopener noreferrer">Explorar en GitHub <span aria-hidden="true">↗</span></a>
+          <a class="button button-outline" href="#concepto">Conocer el concepto <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="fine-print">Un proyecto en construcción. Construyámoslo juntos.</p>
+      </div>
+      <div class="hero-visual">
+        <figure class="hero-art">
+          <img src="./assets/images/01-hero-engine.webp" width="1536" height="1024" fetchpriority="high" alt="Conversaciones que entran a un motor compartido y avanzan por tres flujos: Sales, Support y Commerce.">
+          <figcaption class="hero-art-labels" aria-hidden="true">
+            <span class="hero-label sales">Sales</span>
+            <span class="hero-label support">Support</span>
+            <span class="hero-label commerce">Commerce</span>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="section-marker"><span>01 / La visión</span><span class="marker-line"></span><span>Un motor compartido. Muchos caminos posibles.</span></div>
+    </section>
+
+    <section class="concept-section container" id="concepto" aria-labelledby="concept-title">
+      <p class="eyebrow">02 / Un motor, distintos objetivos</p>
+      <h2 id="concept-title">Las mismas piezas.<br><span class="gradient-text">Infinitas formas de avanzar.</span></h2>
+      <p class="section-description">Conversaciones, agentes y herramientas que se adaptan a cada proceso.</p>
+
+      <div class="funnels" id="funnels">
+        <article class="funnel sales">
+          <h3>Sales</h3>
+          <p>De una conversación a una oportunidad.</p>
+          <img class="flow-illustration" src="./assets/images/02-sales-flow.webp" width="2172" height="724" loading="lazy" decoding="async" alt="">
+          <ol class="stages" aria-label="Etapas de Sales">
+            <li>Lead</li><li>Propuesta</li><li>Cliente</li>
+          </ol>
+        </article><article class="funnel support">
+          <h3>Support</h3>
+          <p>De una consulta a una solución.</p>
+          <img class="flow-illustration" src="./assets/images/03-support-flow.webp" width="2172" height="724" loading="lazy" decoding="async" alt="">
+          <ol class="stages" aria-label="Etapas de Support">
+            <li>Consulta</li><li>Resolución</li><li>Resuelta</li>
+          </ol>
+        </article><article class="funnel commerce">
+          <h3>Commerce</h3>
+          <p>De una intención a una orden.</p>
+          <img class="flow-illustration" src="./assets/images/04-commerce-flow.webp" width="2172" height="724" loading="lazy" decoding="async" alt="">
+          <ol class="stages" aria-label="Etapas de Commerce">
+            <li>Intención</li><li>Carrito</li><li>Orden</li>
+          </ol>
+        </article>
+      </div>
+
+      <svg class="core-connectors" viewBox="0 0 1200 110" preserveAspectRatio="none" aria-hidden="true">
+        <defs><filter id="connector-glow" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+        <g fill="none" stroke-width="2">
+          <path class="sales-line" d="M185 0v20Q185 40 215 40H515Q570 40 570 100"/>
+          <path class="support-line" d="M600 0v105"/>
+          <path class="commerce-line" d="M1015 0v20Q1015 40 985 40H685Q630 40 630 100"/>
+        </g>
+        <g fill="none" stroke-width="5" filter="url(#connector-glow)" opacity=".7">
+          <path class="sales-line" d="M185 0v20Q185 40 215 40H515Q570 40 570 100"/>
+          <path class="support-line" d="M600 0v105"/>
+          <path class="commerce-line" d="M1015 0v20Q1015 40 985 40H685Q630 40 630 100"/>
+        </g>
+        <circle cx="600" cy="48" r="3" fill="#b3fff3"/>
+      </svg>
+
+      <div class="shared-core">
+        <h3 class="eyebrow">El núcleo compartido</h3>
+        <ul><li><svg class="icon " aria-hidden="true"><use href="#icon-agent"/></svg><span>Agentes</span></li><li><svg class="icon " aria-hidden="true"><use href="#icon-chat"/></svg><span>Conversaciones</span></li><li><svg class="icon " aria-hidden="true"><use href="#icon-book"/></svg><span>Conocimiento</span></li><li><svg class="icon " aria-hidden="true"><use href="#icon-tool"/></svg><span>Herramientas</span></li><li><svg class="icon " aria-hidden="true"><use href="#icon-person"/></svg><span>Intervención humana</span></li></ul>
+      </div>
+
+      <aside class="human-handoff">
+        <h3>La IA avanza.<br><span class="gradient-text">Las personas deciden.</span></h3>
+        <div><p>Cada flujo combina conocimiento, herramientas y una transición a una persona cuando hace falta.</p><p class="eyebrow">Visión del producto · En desarrollo</p></div>
+      </aside>
+    </section>
+
+    <section class="custom-section" aria-labelledby="custom-title">
+      <div class="container custom-layout">
+        <div class="custom-copy">
+          <p class="eyebrow">03 / Tu propio funnel</p>
+          <h2 id="custom-title">Tu proceso.<br>Tus etapas.<br><span class="gradient-text">Tu agente.</span></h2>
+          <p class="section-description">Define el disparador, las etapas y el agente. Imagina el flujo que tu negocio necesita.</p>
+        </div>
+        <figure class="custom-diagram">
+          <figcaption class="eyebrow">Funnel personalizado</figcaption>
+          <div class="custom-art">
+            <img src="./assets/images/05-custom-workflow.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="Un flujo conecta el disparador, las etapas y el resultado; se apoya en un agente, conocimiento, herramientas e intervención humana.">
+            <ol class="custom-stage-labels" aria-label="Etapas del funnel personalizado">
+              <li>Disparador</li><li>Etapas</li><li>Resultado</li>
+            </ol>
+            <ul class="custom-resource-labels" aria-label="Recursos del funnel">
+              <li>Agente</li><li>Conocimiento</li><li>Herramientas</li>
+            </ul>
+            <span class="custom-human-label">Intervención humana</span>
+          </div>
+          <p class="diagram-caption eyebrow">Vista conceptual</p>
+        </figure>
+      </div>
+    </section>
+
+    <section class="community-section" id="comunidad" aria-labelledby="community-title">
+      <svg class="community-trails" viewBox="0 0 1440 420" preserveAspectRatio="none" aria-hidden="true">
+        <g fill="none" stroke-width="1">
+          <path stroke="#3152bd" d="M0 25C150 70 150 160 400 160M1440 25C1290 70 1290 160 1040 160"/>
+          <path stroke="#426be5" d="M0 95C150 110 150 190 400 190M1440 95C1290 110 1290 190 1040 190"/>
+          <path stroke="#359fca" d="M0 210C150 210 200 220 400 220M1440 210C1290 210 1240 220 1040 220"/>
+          <path stroke="#437d87" d="M0 320C150 295 200 250 400 250M1440 320C1290 295 1240 250 1040 250"/>
+          <path stroke="#7958b9" d="M0 390C160 350 200 280 400 280M1440 390C1280 350 1240 280 1040 280"/>
+        </g>
+        <g fill="#70bfff"><circle cx="140" cy="109" r="3"/><circle cx="260" cy="182" r="3"/><circle cx="1300" cy="109" r="3"/><circle cx="1180" cy="182" r="3"/></g>
+        <g fill="#a386ff"><circle cx="175" cy="328" r="3"/><circle cx="1265" cy="328" r="3"/></g>
+      </svg>
+      <div class="container community-content">
+        <p class="eyebrow">Construido en abierto</p>
+        <h2 id="community-title">El siguiente paso<br><span class="gradient-text">lo construimos juntos.</span></h2>
+        <p class="section-description">Explora el código, comparte ideas y ayuda a dar forma a OpenFunnel.</p>
+        <div class="actions">
+          <a class="button button-primary" href="https://github.com/chrisenprod/openfunnel_kit" target="_blank" rel="noopener noreferrer">Ver repositorio <span aria-hidden="true">↗</span></a>
+          <a class="button button-outline" href="https://github.com/chrisenprod/openfunnel_kit/issues/new" target="_blank" rel="noopener noreferrer">Proponer una idea <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="fine-print">Proyecto en desarrollo.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer container">
+    <div><a class="wordmark" href="#inicio" aria-label="OpenFunnel, volver al inicio">Open<span>Funnel</span></a><p>Una plataforma abierta. Muchos caminos posibles.</p></div>
+    <div class="footer-links">
+      <nav aria-label="Navegación del pie de página"><a href="https://github.com/chrisenprod/openfunnel_kit" target="_blank" rel="noopener noreferrer">Repositorio ↗</a><a href="#concepto">Concepto</a><a href="#comunidad">Comunidad</a></nav>
+      <a class="repository-address" href="https://github.com/chrisenprod/openfunnel_kit" target="_blank" rel="noopener noreferrer">github.com/chrisenprod/openfunnel_kit</a>
+    </div>
+  </footer>
+</body>
+</html>

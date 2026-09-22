@@ -4,6 +4,8 @@
 
 Proyecto en etapa inicial. Partimos con lo mínimo y añadiremos estructura y herramientas a medida que sean necesarias.
 
+El [checklist reutilizable](docs/CHECKLIST-PROYECTO.md) describe el proceso desde la inicialización del repositorio hasta la publicación de una landing. Incluye prompts y puede copiarse a otro proyecto sin recursos adjuntos.
+
 ## Stack
 
 - Frontend: React + Vite, JavaScript y CSS.
@@ -41,6 +43,14 @@ SQLite se crea automáticamente en `backend/data/app.sqlite`; todavía no hay ta
 
 ## Comandos y estructura
 
+La landing definitiva está en **`landing/`**, basada en la propuesta v2. El HTML y CSS están en la raíz; las imágenes de producción se organizan en `landing/assets/images/`.
+
+- `npm run dev:landing`: abre la landing en http://127.0.0.1:5174, independiente de la API.
+- `npm run build:landing`: compila `landing/` en `dist/landing/`.
+- `npm run preview:landing`: sirve la compilación en http://127.0.0.1:4174.
+- `landing/`: HTML semántico, CSS responsive, cinco ilustraciones WebP transparentes en `assets/images/` y conectores SVG. Las etiquetas permanecen en HTML. El selector del encabezado alterna entre tema claro y oscuro; inicialmente sigue al sistema y guarda la elección en el navegador. Usar `npm run dev:landing` para disponer de esta interacción; abrir [landing/index.html](landing/index.html) directamente permite ver la página estática.
+- `docs/CHECKLIST-PROYECTO.md`: guía reutilizable de trabajo. Los recursos de diseño temporales se eliminan; solo se conservan en la landing las imágenes optimizadas que utiliza.
+
 - `npm run build`: compila el frontend en `frontend/dist/`.
 - `npm run preview`: previsualiza la compilación; requiere el backend iniciado para `/api`.
 - `npm start`: inicia solo la API, sin recarga automática.
@@ -53,14 +63,19 @@ Esta base cubre desarrollo local. El despliegue y el servicio del frontend compi
 
 Repositorio: https://github.com/chrisenprod/openfunnel_kit
 
-Usaremos Git para los cambios locales y GitHub CLI (`gh`) para gestionar issues, pull requests y consultar el repositorio.
+Usaremos siempre la cuenta de GitHub `chrisenprod` y GitHub CLI (`gh`) para autenticarnos, gestionar issues y pull requests y consultar el repositorio. Git se usa para los cambios locales y para `fetch`, `pull` y `push`, con la autenticación configurada mediante `gh`.
 
 ```sh
-gh auth login # Solo si todavía no tienes una sesión iniciada.
+gh auth status
+gh auth switch --hostname github.com --user chrisenprod
+gh api user --jq .login # Debe devolver chrisenprod.
+gh auth setup-git --hostname github.com
 gh repo view
 gh issue list
 gh pr list
 ```
+
+Si no hay una sesión de `chrisenprod`, ejecutar `gh auth login --hostname github.com --git-protocol https` con esa cuenta antes de continuar. No extraer ni inyectar tokens manualmente para cambiar de cuenta.
 
 El remoto `origin` apunta a `https://github.com/chrisenprod/openfunnel_kit.git`.
 

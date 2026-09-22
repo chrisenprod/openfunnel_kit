@@ -18,6 +18,7 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 - Ejecutar todos los comandos desde la raíz.
 - Instalar dependencias con `npm install`; usar `npm ci` para reproducir el lockfile.
 - Ejecutar `npm run dev:backend` y `npm run dev` en terminales separadas.
+- La landing definitiva vive en `landing/`: HTML y CSS en la raíz, imágenes de producción en `landing/assets/images/` y conectores SVG. Comprimir las ilustraciones a WebP conservando la transparencia; mantener etiquetas en HTML. Se basa en la propuesta v2 seleccionada. Los recursos de diseño temporales fueron eliminados; no versionar propuestas descartadas, galerías ni originales pesados regenerables. Conservar las imágenes WebP utilizadas por la landing. El proceso y los prompts reutilizables están en `docs/CHECKLIST-PROYECTO.md`. Usar `npm run dev:landing` (5174), `npm run build:landing` (salida `dist/landing/`) y `npm run preview:landing` (4174). No requiere backend. Añadir JavaScript solo cuando la interacción lo necesite. Revisar escritorio, móvil y navegación por teclado.
 - El frontend usa el puerto 5173; el backend usa `PORT` o 3001. Vite redirige `/api` al backend.
 - `GET /api/health` verifica SQLite con una consulta real.
 - Verificar cambios con `npm run build` y comprobar los endpoints afectados.
@@ -31,15 +32,21 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 
 - Repositorio: https://github.com/chrisenprod/openfunnel_kit
 - Remoto `origin`: `https://github.com/chrisenprod/openfunnel_kit.git`.
-- Usar Git para los cambios locales y GitHub CLI (`gh`) para consultar el repositorio y gestionar issues y pull requests.
+- Usar siempre la cuenta de GitHub `chrisenprod`; no utilizar otras cuentas para este repositorio.
+- Usar siempre GitHub CLI (`gh`) para autenticarse, consultar GitHub y gestionar el repositorio, issues y pull requests. Usar Git para los cambios locales y para `fetch`, `pull` y `push`, con la autenticación configurada mediante `gh auth setup-git`.
+- Antes de operar con GitHub, comprobar la cuenta activa. Si es otra, ejecutar `gh auth switch --hostname github.com --user chrisenprod` y verificar que `gh api user --jq .login` devuelve `chrisenprod`.
+- No extraer tokens ni inyectarlos manualmente en comandos o variables de entorno para cambiar de cuenta; utilizar los comandos de autenticación de `gh`.
 
 Comandos básicos:
 
 ```sh
 gh auth status
+gh auth switch --hostname github.com --user chrisenprod
+gh api user --jq .login
+gh auth setup-git --hostname github.com
 gh repo view
 gh issue list
 gh pr list
 ```
 
-Si no hay una sesión iniciada, autenticarse con `gh auth login`.
+Si `chrisenprod` no tiene una sesión iniciada, autenticarse con `gh auth login --hostname github.com --git-protocol https` usando esa cuenta y verificar la identidad antes de continuar.
