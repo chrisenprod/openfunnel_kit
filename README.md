@@ -1,3 +1,5 @@
+![OpenFunnel — plataforma open source de workflows con IA, con un motor compartido para Sales, Support y Commerce.](assets/readme-banner.png)
+
 # openfunnel_kit
 
 Proyecto en etapa inicial. Partimos con lo mínimo y añadiremos estructura y herramientas a medida que sean necesarias.
