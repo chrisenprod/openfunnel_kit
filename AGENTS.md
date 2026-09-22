@@ -31,15 +31,21 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 
 - Repositorio: https://github.com/chrisenprod/openfunnel_kit
 - Remoto `origin`: `https://github.com/chrisenprod/openfunnel_kit.git`.
-- Usar Git para los cambios locales y GitHub CLI (`gh`) para consultar el repositorio y gestionar issues y pull requests.
+- Usar siempre la cuenta de GitHub `chrisenprod`; no utilizar otras cuentas para este repositorio.
+- Usar siempre GitHub CLI (`gh`) para autenticarse, consultar GitHub y gestionar el repositorio, issues y pull requests. Usar Git para los cambios locales y para `fetch`, `pull` y `push`, con la autenticación configurada mediante `gh auth setup-git`.
+- Antes de operar con GitHub, comprobar la cuenta activa. Si es otra, ejecutar `gh auth switch --hostname github.com --user chrisenprod` y verificar que `gh api user --jq .login` devuelve `chrisenprod`.
+- No extraer tokens ni inyectarlos manualmente en comandos o variables de entorno para cambiar de cuenta; utilizar los comandos de autenticación de `gh`.
 
 Comandos básicos:
 
 ```sh
 gh auth status
+gh auth switch --hostname github.com --user chrisenprod
+gh api user --jq .login
+gh auth setup-git --hostname github.com
 gh repo view
 gh issue list
 gh pr list
 ```
 
-Si no hay una sesión iniciada, autenticarse con `gh auth login`.
+Si `chrisenprod` no tiene una sesión iniciada, autenticarse con `gh auth login --hostname github.com --git-protocol https` usando esa cuenta y verificar la identidad antes de continuar.

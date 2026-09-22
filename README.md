@@ -1,3 +1,5 @@
+![OpenFunnel — plataforma open source de workflows con IA, con un motor compartido para Sales, Support y Commerce.](assets/readme-banner.png)
+
 # openfunnel_kit
 
 Proyecto en etapa inicial. Partimos con lo mínimo y añadiremos estructura y herramientas a medida que sean necesarias.
@@ -51,14 +53,19 @@ Esta base cubre desarrollo local. El despliegue y el servicio del frontend compi
 
 Repositorio: https://github.com/chrisenprod/openfunnel_kit
 
-Usaremos Git para los cambios locales y GitHub CLI (`gh`) para gestionar issues, pull requests y consultar el repositorio.
+Usaremos siempre la cuenta de GitHub `chrisenprod` y GitHub CLI (`gh`) para autenticarnos, gestionar issues y pull requests y consultar el repositorio. Git se usa para los cambios locales y para `fetch`, `pull` y `push`, con la autenticación configurada mediante `gh`.
 
 ```sh
-gh auth login # Solo si todavía no tienes una sesión iniciada.
+gh auth status
+gh auth switch --hostname github.com --user chrisenprod
+gh api user --jq .login # Debe devolver chrisenprod.
+gh auth setup-git --hostname github.com
 gh repo view
 gh issue list
 gh pr list
 ```
+
+Si no hay una sesión de `chrisenprod`, ejecutar `gh auth login --hostname github.com --git-protocol https` con esa cuenta antes de continuar. No extraer ni inyectar tokens manualmente para cambiar de cuenta.
 
 El remoto `origin` apunta a `https://github.com/chrisenprod/openfunnel_kit.git`.
 
