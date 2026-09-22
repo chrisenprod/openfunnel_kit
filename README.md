@@ -4,6 +4,8 @@
 
 Proyecto en etapa inicial. Partimos con lo mínimo y añadiremos estructura y herramientas a medida que sean necesarias.
 
+El [checklist reutilizable](docs/CHECKLIST-PROYECTO.md) describe el proceso desde la inicialización del repositorio hasta la publicación de una landing. Incluye prompts y puede copiarse a otro proyecto sin recursos adjuntos.
+
 ## Stack
 
 - Frontend: React + Vite, JavaScript y CSS.
@@ -40,6 +42,14 @@ La configuración es opcional: copiar los valores de `.env.example` a `.env` par
 SQLite se crea automáticamente en `backend/data/app.sqlite`; todavía no hay tablas de negocio. Los datos locales, `.env`, dependencias y archivos compilados quedan fuera de Git.
 
 ## Comandos y estructura
+
+La landing definitiva está en **`landing/`**, basada en la propuesta v2. El HTML y CSS están en la raíz; las imágenes de producción se organizan en `landing/assets/images/`.
+
+- `npm run dev:landing`: abre la landing en http://127.0.0.1:5174, independiente de la API.
+- `npm run build:landing`: compila `landing/` en `dist/landing/`.
+- `npm run preview:landing`: sirve la compilación en http://127.0.0.1:4174.
+- `landing/`: HTML semántico, CSS responsive, cinco ilustraciones WebP transparentes en `assets/images/` y conectores SVG. Las etiquetas permanecen en HTML. El selector del encabezado alterna entre tema claro y oscuro; inicialmente sigue al sistema y guarda la elección en el navegador. Usar `npm run dev:landing` para disponer de esta interacción; abrir [landing/index.html](landing/index.html) directamente permite ver la página estática.
+- `docs/CHECKLIST-PROYECTO.md`: guía reutilizable de trabajo. Los recursos de diseño temporales se eliminan; solo se conservan en la landing las imágenes optimizadas que utiliza.
 
 - `npm run build`: compila el frontend en `frontend/dist/`.
 - `npm run preview`: previsualiza la compilación; requiere el backend iniciado para `/api`.

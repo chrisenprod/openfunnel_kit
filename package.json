@@ -8,6 +8,9 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:landing": "vite --config landing/vite.config.js",
+    "build:landing": "vite build --config landing/vite.config.js",
+    "preview:landing": "vite preview --config landing/vite.config.js",
     "dev:backend": "node --watch --env-file-if-exists=.env backend/server.js",
     "build": "vite build",
     "preview": "vite preview",

@@ -18,6 +18,7 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 - Ejecutar todos los comandos desde la raíz.
 - Instalar dependencias con `npm install`; usar `npm ci` para reproducir el lockfile.
 - Ejecutar `npm run dev:backend` y `npm run dev` en terminales separadas.
+- La landing definitiva vive en `landing/`: HTML y CSS en la raíz, imágenes de producción en `landing/assets/images/` y conectores SVG. Comprimir las ilustraciones a WebP conservando la transparencia; mantener etiquetas en HTML. Se basa en la propuesta v2 seleccionada. Los recursos de diseño temporales fueron eliminados; no versionar propuestas descartadas, galerías ni originales pesados regenerables. Conservar las imágenes WebP utilizadas por la landing. El proceso y los prompts reutilizables están en `docs/CHECKLIST-PROYECTO.md`. Usar `npm run dev:landing` (5174), `npm run build:landing` (salida `dist/landing/`) y `npm run preview:landing` (4174). No requiere backend. Añadir JavaScript solo cuando la interacción lo necesite. Revisar escritorio, móvil y navegación por teclado.
 - El frontend usa el puerto 5173; el backend usa `PORT` o 3001. Vite redirige `/api` al backend.
 - `GET /api/health` verifica SQLite con una consulta real.
 - Verificar cambios con `npm run build` y comprobar los endpoints afectados.
