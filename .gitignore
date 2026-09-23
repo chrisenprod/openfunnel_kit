@@ -1,6 +1,7 @@
 node_modules/
 frontend/dist/
 /dist/landing/
+/.vercel/
 backend/data/
 .env
 .env.*
@@ -10,3 +11,6 @@ backend/data/
 *.sqlite-wal
 *.log
 .DS_Store
+
+# Local design proposals
+/propuestas/

@@ -1,0 +1,6 @@
+# Sustituir por el dominio que apunta al VPS.
+landing.example.com {
+    root * /srv/openfunnel-landing
+    encode zstd gzip
+    file_server
+}

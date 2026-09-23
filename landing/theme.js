@@ -10,9 +10,12 @@ if (preference !== 'light' && preference !== 'dark') preference = null;
 function applyTheme() {
   const theme = preference ?? (systemTheme.matches ? 'dark' : 'light');
   root.dataset.theme = theme;
+  document.querySelectorAll('source[data-theme-light]').forEach((source) => {
+    source.media = theme === 'light' ? 'all' : 'not all';
+  });
   toggle.setAttribute('aria-pressed', String(theme === 'dark'));
   toggle.title = theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
-  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#061120' : '#f5f8ff';
+  document.querySelector('meta[name="theme-color"]').content = '#102f75';
 }
 
 toggle.addEventListener('click', () => {

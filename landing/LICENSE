@@ -1,0 +1,12 @@
+Copyright 2026 Chris Lobarede Fernández.
+
+All rights reserved, except for the limited permissions in ../LICENSING.md.
+Todos los derechos reservados, salvo los permisos limitados de ../LICENSING.md.
+
+This applies to this directory and its subdirectories, except:
+- brand.css and vite.config.js: Apache License 2.0 (see ../LICENSE).
+- Third-party materials: their respective licenses remain applicable.
+
+The Apache License at the repository root does not license the other landing
+files, texts, images or visual assets. See ../LICENSING.md for the full scope,
+permissions for repository copies and development, and use of the bundled mark.
