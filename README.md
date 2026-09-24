@@ -32,7 +32,9 @@ de producción. La [guía de CI y entorno](docs/deploy/CI-Y-ENTORNO.md) document
 configuración privada del VPS;
 resultados en [seguridad y CI](docs/qa/SEGURIDAD-Y-CI.md).
 Verificado en GitHub e integrado a main mediante el
-[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). Los despliegues siguen siendo manuales.
+[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). El workflow [Publicar app](.github/workflows/deploy-app.yml) publica main cuando pasa CI,
+mediante SSH restringido, respaldo previo y comprobación de salud. Los cambios de
+migraciones requieren revisión manual.
 
 La implementación de esta etapa se sigue en las
 [tareas de la base](openspec/changes/platform-foundation/tasks.md) y las
@@ -212,7 +214,7 @@ requisitos, pasos, comprobaciones y cómo volver a una versión anterior.
 La base relativa de Vite permite usar tanto `/` como `/openfunnel_kit/`. La landing
 no necesita variables de entorno, API ni SQLite. `npm run preview:landing` es solo
 para comprobar la compilación localmente; producción utiliza el alojamiento estático.
-El despliegue de la aplicación React y de la API se definirá por separado.
+La app y API tienen su despliegue separado en [PRODUCCION.md](docs/deploy/PRODUCCION.md).
 
 ## Trabajo con GitHub
 

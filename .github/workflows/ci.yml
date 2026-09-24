@@ -38,4 +38,4 @@ jobs:
         env:
           VERIFIED_SHA: ${{ github.sha }}
         run: |
-          printf 'Commit verificado (sin despliegue): `%s`\n' "$VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Commit verificado por CI: `%s`\n' "$VERIFIED_SHA" >> "$GITHUB_STEP_SUMMARY"

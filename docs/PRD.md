@@ -663,7 +663,9 @@ un único backend/worker sobre cada base y mantener el control humano de la IA.
 
 El orden es: dockerización, auditoría previa, GitHub Actions, publicación controlada
 en VPS y validación en producción. CI ejecutará las comprobaciones y preparará
-versiones identificables; el despliegue se disparará manualmente al principio.
+versiones identificables. Tras la primera publicación manual, el usuario autorizó
+el despliegue automático de main cuando pase CI, con recuperación de código y
+revisión manual para cambios de migraciones.
 Las pruebas y las correcciones de seguridad acompañan todo el recorrido.
 
 Quedan fuera: alta disponibilidad, múltiples réplicas que escriban la misma base,
@@ -684,7 +686,7 @@ y aprovisionamiento de clientes. La landing conserva su publicación independien
    hallazgos críticos o altos sin resolver; la exposición se comprueba otra vez
    después de desplegar. El informe delimita cobertura y limitaciones.
 5. GitHub Actions verifica pruebas, specs y compilación, y produce una versión
-   identificable. La publicación manual requiere controles exitosos y evita
+   identificable. La publicación automática de main requiere controles exitosos y evita
    despliegues concurrentes o acceso a secretos desde cambios no confiables.
 6. Existen copias con retención y destino fuera del VPS, y se demuestra una
    restauración aislada. Se documenta y prueba la reversión de código y su
