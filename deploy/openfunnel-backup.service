@@ -1,0 +1,11 @@
+[Unit]
+Description=OpenFunnel consistent SQLite backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/openfunnel-backup
+UMask=0077
+NoNewPrivileges=true
+TimeoutStartSec=5min

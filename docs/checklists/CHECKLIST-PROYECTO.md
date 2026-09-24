@@ -16,7 +16,7 @@ Antes de empezar, definir nombre del proyecto, cuenta de GitHub, repositorio y o
 
 - [ ] **5. Decidir e instalar el stack mínimo.** Elegir frontend, backend y persistencia según las necesidades. Documentar versiones, gestor de paquetes y comandos; guardar el lockfile. Un ejemplo de base mínima es React + Vite, Node.js y SQLite, sin que sea obligatorio para otros proyectos.
 
-- [ ] **5.1. Crear `CONCEPTO.md`.** Definir qué es el producto, para quién sirve, qué problema resuelve, sus casos de uso, el alcance inicial, lo que no se construirá todavía y las decisiones abiertas. Usarlo como fuente de contexto para diseño e implementación.
+- [ ] **5.1. Crear `docs/CONCEPTO.md`.** Definir qué es el producto, para quién sirve, qué problema resuelve, sus casos de uso, el alcance inicial, lo que no se construirá todavía y las decisiones abiertas. Usarlo como fuente de contexto para diseño e implementación.
 
 - [ ] **5.2. Configurar el entorno local.** Preparar `.env.example`, `.gitignore`, puertos y scripts. Excluir secretos, bases de datos locales, dependencias y compilaciones. No exponer secretos en variables del frontend.
 
@@ -81,11 +81,11 @@ git diff --check
 
 ## Prompts reutilizables
 
-**Concepto:** «Ayúdame a definir este proyecto en CONCEPTO.md: problema, público, propuesta de valor, casos de uso, alcance inicial, exclusiones y decisiones pendientes. Usa lo que ya acordamos y señala lo que falta decidir».
+**Concepto:** «Ayúdame a definir este proyecto en docs/CONCEPTO.md: problema, público, propuesta de valor, casos de uso, alcance inicial, exclusiones y decisiones pendientes. Usa lo que ya acordamos y señala lo que falta decidir».
 
-**Banner:** «Basándote en CONCEPTO.md, genera con image_gen un banner horizontal para el README. Prioriza nombre, propuesta de valor y una ilustración coherente con el producto. No inventes métricas, clientes ni funciones disponibles».
+**Banner:** «Basándote en docs/CONCEPTO.md, genera con image_gen un banner horizontal para el README. Prioriza nombre, propuesta de valor y una ilustración coherente con el producto. No inventes métricas, clientes ni funciones disponibles».
 
-**Propuesta visual:** «Usa CONCEPTO.md y el banner para generar tres imágenes coordinadas de una landing: hero, sección central y cierre con footer. Mantén tipografía, colores, márgenes y botones consistentes. Preséntala como propuesta visual para implementar».
+**Propuesta visual:** «Usa docs/CONCEPTO.md y el banner para generar tres imágenes coordinadas de una landing: hero, sección central y cierre con footer. Mantén tipografía, colores, márgenes y botones consistentes. Preséntala como propuesta visual para implementar».
 
 **Kit de ilustraciones:** «A partir de la propuesta elegida, genera por separado las ilustraciones necesarias. Sin textos ni interfaz incrustados, con PNG de transparencia real y margen para no cortar los bordes. Mantén la misma dirección visual. Después comprime los recursos finales a WebP e intégralos en la landing».
 

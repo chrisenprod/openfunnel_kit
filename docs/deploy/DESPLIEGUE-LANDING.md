@@ -122,7 +122,47 @@ La configuración no crea funciones ni requiere conectar el backend. No se añad
 una regla que redirija todas las rutas a `index.html`: una ruta inexistente debe
 devolver 404. Si se usa la CLI de Vercel, `.vercel/` queda fuera de Git.
 
-## 4. VPS con Caddy
+## 4. VPS
+
+### Despliegue activo: Nginx en MOCCA-CLOUD
+
+Publicado el 23 de septiembre de 2026 en **https://openfunnel.mocca.cl**.
+El DNS apunta a `164.92.74.160`. El acceso local usa
+`ssh -F .codex/ssh-config mocca-cloud` (puerto 2222); ese archivo es privado y
+no se copia al VPS ni se versiona.
+
+- Repositorio completo: `/srv/openfunnel_kit`, con historial Git y copia del
+  estado local, incluidos los cambios sin commit. Solo root puede acceder.
+- Landing pública: `/var/www/openfunnel/current`, enlace a
+  `releases/20260923-a56e27f`. Contiene exclusivamente `dist/landing/`.
+- Sitio Nginx: `/etc/nginx/sites-available/openfunnel.mocca.cl`, enlazado desde
+  `sites-enabled`; copia en [`deploy/openfunnel.nginx.conf`](../../deploy/openfunnel.nginx.conf).
+- TLS: Let's Encrypt, con desafío webroot en `/var/www/letsencrypt`.
+  `certbot.timer` gestiona la renovación; el hook valida y recarga Nginx.
+- HTTP redirige a HTTPS. Las rutas inexistentes y los archivos ocultos devuelven
+  404. No se inicia la aplicación React ni la API.
+
+Para actualizar la landing, compilar localmente y crear una nueva release. Estos
+comandos se ejecutan desde la raíz del proyecto; requieren la configuración SSH
+local. Conservan los assets de la release anterior para visitantes con HTML viejo:
+
+```sh
+npm run build:landing
+release="$(date -u +%Y%m%d-%H%M%S)"
+ssh -F .codex/ssh-config mocca-cloud "mkdir /var/www/openfunnel/releases/$release && cp -a /var/www/openfunnel/current/assets /var/www/openfunnel/releases/$release/"
+rsync -av --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+  -e 'ssh -F .codex/ssh-config' dist/landing/ \
+  "mocca-cloud:/var/www/openfunnel/releases/$release/"
+ssh -F .codex/ssh-config mocca-cloud "ln -s releases/$release /var/www/openfunnel/current.next && mv -Tf /var/www/openfunnel/current.next /var/www/openfunnel/current"
+curl -I https://openfunnel.mocca.cl/
+```
+
+El cambio de enlace es atómico y no requiere recargar Nginx. Para volver atrás,
+repetir el último comando SSH con el identificador de una release anterior.
+La copia del código fuente se mantiene por separado; no ejecutar `git pull`
+sobre cambios sin commit sin revisarlos. No hay despliegue automático desde GitHub.
+
+### Alternativa para otro VPS: Caddy
 
 Antes de adaptar este ejemplo, identificar el sistema operativo, el usuario SSH,
 la IP, el dominio y el servidor o panel existente. Si Nginx, Apache u otro servicio

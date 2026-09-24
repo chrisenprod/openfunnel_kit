@@ -6,6 +6,7 @@ backend/data/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
@@ -14,3 +15,13 @@ backend/data/
 
 # Local design proposals
 /propuestas/
+/.codex/*
+!/.codex/agents/
+/.codex/agents/*
+!/.codex/agents/*.toml
+
+# Local visual references
+/docs/referencias-visuales/
+
+# Private infrastructure audit evidence
+/docs/qa/private/
