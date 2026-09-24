@@ -32,7 +32,7 @@ de producción. La [guía de CI y entorno](docs/deploy/CI-Y-ENTORNO.md) document
 configuración privada del VPS;
 resultados en [seguridad y CI](docs/qa/SEGURIDAD-Y-CI.md).
 Verificado en GitHub e integrado a main mediante el
-[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). El workflow [Publicar app](.github/workflows/deploy-app.yml) publica main cuando pasa CI,
+[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). El workflow [Publicar VPS](.github/workflows/deploy-app.yml) publica main cuando pasa CI,
 mediante SSH restringido, respaldo previo y comprobación de salud. Los cambios de
 migraciones requieren revisión manual.
 
@@ -210,6 +210,9 @@ requisitos, pasos, comprobaciones y cómo volver a una versión anterior.
 - GitHub Pages: workflow manual en `.github/workflows/deploy-landing.yml`.
 - Vercel: `vercel.json` en la raíz configura `npm ci`, `npm run build:landing` y `dist/landing`.
 - VPS: https://openfunnel.mocca.cl, servido por Nginx con HTTPS. Configuración en `deploy/openfunnel.nginx.conf`; Caddy queda como alternativa en `deploy/Caddyfile.example`.
+
+La landing del VPS dispone de [publicación automática opcional](docs/deploy/LANDING-VPS-ACTIONS.md)
+tras CI, con configuración por instalación. Pages y Vercel siguen como alternativas.
 
 La base relativa de Vite permite usar tanto `/` como `/openfunnel_kit/`. La landing
 no necesita variables de entorno, API ni SQLite. `npm run preview:landing` es solo

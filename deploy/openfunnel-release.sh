@@ -83,8 +83,8 @@ health() {
   curl --fail --silent --show-error --max-time 15 -o /dev/null https://app.openfunnel.mocca.cl/ || return 1
 }
 activate() {
-  rm -f "$base/.current-next"
-  ln -s "$1" "$base/.current-next"
+  rm -f "$base/.current-next" || return
+  ln -s "$1" "$base/.current-next" || return
   mv -Tf "$base/.current-next" "$base/current"
 }
 
@@ -92,6 +92,19 @@ if [[ $previous_sha == "$release_sha" ]]; then
   health
   printf 'Release already active and healthy: %s\n' "$release_sha"
   exit 0
+fi
+# Compare build/runtime inputs with the actual deployed release, not the last CI run.
+# Shared brand assets still trigger an app build; landing-only content does not.
+if git --git-dir="$repository" diff --quiet "$previous_sha" "$release_sha" -- \
+  Dockerfile .dockerignore package.json package-lock.json .nvmrc vite.config.js \
+  backend frontend shared landing/brand.css landing/assets/images/openfunnel-mark.webp \
+  deploy/app.nginx.conf compose.yaml compose.production.yaml; then
+  health
+  printf 'App inputs unchanged; existing containers kept.\n'
+  exit 0
+else
+  diff_status=$?
+  [[ $diff_status -eq 1 ]] || exit "$diff_status"
 fi
 compose "$release" config --quiet
 # Bound build time. Provider secrets are runtime-only, never build arguments.

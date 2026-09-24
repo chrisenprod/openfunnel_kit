@@ -16,7 +16,7 @@ El test Docker construye ambas imágenes y verifica auth, proxy, cabeceras, lím
 webhooks, persistencia, ausencia de secretos en el contexto, usuario no root y
 recuperación con datos sintéticos. El resumen identifica el commit comprobado.
 No requiere secretos de GitHub, credenciales SSH ni claves de proveedores.
-Este workflow no publica imágenes ni despliega; Publicar app consume su resultado
+Este workflow no publica imágenes ni despliega; Publicar VPS consume su resultado
 exitoso para main. El flujo manual de la landing sigue
 siendo independiente. Una vulnerabilidad alta o crítica informada por npm bloquea CI.
 
@@ -76,7 +76,7 @@ activar el nuevo webhook. Registrar las cuentas de prueba autorizadas. La revers
 debe contemplar compatibilidad del esquema y respaldo, no solo imágenes anteriores.
 
 El usuario autorizó automatizar las actualizaciones mediante
-`.github/workflows/deploy-app.yml` (**Publicar app**). Se activa al terminar
+`.github/workflows/deploy-app.yml` (**Publicar VPS**). Se activa al terminar
 **Verificar app** con éxito sobre main del repositorio propio (push o ejecución
 manual de CI). Un PR nunca accede al environment de producción. Los workflows
 permanecen separados: las pruebas no reciben claves de producción.
@@ -114,8 +114,8 @@ misma base; la ejecución sigue marcada como fallida. Nunca restaura SQLite sola
 
 ### Operación y límites
 
-- Para publicar: integrar un PR a main y esperar **Verificar app → Publicar app**.
-- Para reintentar: volver a ejecutar el job fallido de Publicar app, siempre que su
+- Para publicar: integrar un PR a main y esperar **Verificar app → Publicar VPS**.
+- Para reintentar: volver a ejecutar el job fallido de Publicar VPS, siempre que su
   commit siga en punta de main. También se puede ejecutar Verificar app manualmente
   sobre main. No se aceptan SHAs históricos para retroceder silenciosamente.
 - Consultar `journalctl -u openfunnel-deploy-<SHA>` por acceso administrativo.
@@ -133,3 +133,10 @@ misma base; la ejecución sigue marcada como fallida. Nunca restaura SQLite sola
 
 Referencia: [eventos workflow_run de GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)
 y [environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
+
+La landing es un destino opcional del mismo workflow, con configuración propia y
+selección de cambios para evitar recreaciones innecesarias de la app. Configuración
+de flags, SSH, URLs e inventario de portabilidad en [LANDING-VPS-ACTIONS.md](LANDING-VPS-ACTIONS.md).
+Las unidades nuevas distinguen `openfunnel-deploy-app-<SHA>` y
+`openfunnel-deploy-landing-<SHA>`; las unidades anteriores sin sufijo app conservan
+su historial en el journal.

@@ -1,0 +1,12 @@
+# Copy to .codex/ssh-config (ignored). Replace the hostname, port, user and key.
+# Verify the server host key through a trusted channel before the first connection.
+Host my-vps
+  HostName vps.example.com
+  User deploy-admin
+  Port 22
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  StrictHostKeyChecking yes
+  ConnectTimeout 10
+  ServerAliveInterval 30
+  ServerAliveCountMax 3

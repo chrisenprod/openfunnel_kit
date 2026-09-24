@@ -160,7 +160,9 @@ curl -I https://openfunnel.mocca.cl/
 El cambio de enlace es atómico y no requiere recargar Nginx. Para volver atrás,
 repetir el último comando SSH con el identificador de una release anterior.
 La copia del código fuente se mantiene por separado; no ejecutar `git pull`
-sobre cambios sin commit sin revisarlos. No hay despliegue automático desde GitHub.
+sobre cambios sin commit sin revisarlos. El VPS también dispone de [despliegue automático por Actions](LANDING-VPS-ACTIONS.md),
+activable por instalación. Los comandos anteriores se conservan para preparación
+inicial y recuperación manual.
 
 ### Alternativa para otro VPS: Caddy
 
