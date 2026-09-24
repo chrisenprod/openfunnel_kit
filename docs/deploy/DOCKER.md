@@ -83,12 +83,10 @@ probar la base manual sin llamar a proveedores. Para habilitarlas, seguir
 Dominio elegido: **https://app.openfunnel.mocca.cl**, con API en `/api` y webhook en
 `/api/integrations/zernio/webhook`. Su registro A fue comprobado el 2026-09-24 y apunta
 a `164.92.74.160`. La landing permanece en `https://openfunnel.mocca.cl`.
-El DNS no acredita que la app o HTTPS ya estén publicados.
-
-En el futuro VPS, Nginx del host terminará HTTPS y enviará el dominio de la app a
-la entrada web en loopback. `DOCKER_APP_ORIGIN` y `DOCKER_PUBLIC_BASE_URL` usarán
-el origen público HTTPS exacto. Este cambio no modifica Nginx del VPS, certificados,
-DNS, workflows ni el despliegue de la landing; tampoco traslada la base actual.
+La publicación posterior está verificada y documentada en [PRODUCCION.md](PRODUCCION.md).
+Nginx del host termina HTTPS y reenvía a web en loopback; producción utiliza un
+override Compose, entorno y volumen externos propios. Esta guía conserva la prueba
+local aislada: no ejecutarla contra el proyecto o volumen de producción.
 
 ## Prueba reproducible
 

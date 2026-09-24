@@ -20,17 +20,19 @@ completa de respuestas se registra separadamente de las pruebas simuladas.
 La tercera etapa del PRD cubre infraestructura y producción. La app tiene un
 [Dockerfile con targets web/api y Compose](docs/deploy/DOCKER.md) para ejecución
 local aislada; tareas y verificación en
-[containerize-app](openspec/changes/containerize-app/tasks.md). El dominio elegido
-para publicarla es `app.openfunnel.mocca.cl`, con API en `/api`. La publicación
-existente de la landing no implica que la app esté desplegada en el VPS.
+[containerize-app](openspec/changes/containerize-app/tasks.md). La app está publicada
+en **https://app.openfunnel.mocca.cl**, con API en `/api`. Operación, respaldo y
+reversión en [PRODUCCION.md](docs/deploy/PRODUCCION.md); evidencia en
+[verificación de producción](docs/qa/PRODUCCION.md). El mantenimiento de Ubuntu y
+el respaldo externo automático conservan pendientes explícitos.
 
 El workflow [Verificar app](.github/workflows/ci.yml) configura CI para main y PR:
 tests, specs, auditoría npm, builds y prueba Docker aislada, sin despliegue ni claves
 de producción. La [guía de CI y entorno](docs/deploy/CI-Y-ENTORNO.md) documenta la
-configuración privada del VPS y los requisitos pendientes de publicación;
+configuración privada del VPS;
 resultados en [seguridad y CI](docs/qa/SEGURIDAD-Y-CI.md).
-Verificado en GitHub en el [PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2);
-su integración a main sigue pendiente.
+Verificado en GitHub e integrado a main mediante el
+[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). Los despliegues siguen siendo manuales.
 
 La implementación de esta etapa se sigue en las
 [tareas de la base](openspec/changes/platform-foundation/tasks.md) y las

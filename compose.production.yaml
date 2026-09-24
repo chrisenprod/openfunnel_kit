@@ -8,3 +8,8 @@ networks:
   default:
     name: openfunnel
     external: true
+
+volumes:
+  app-data:
+    name: openfunnel_app-data
+    external: true
