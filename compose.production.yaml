@@ -1,14 +1,22 @@
+# VPS overrides, merged after compose.yaml using a second -f argument.
+# Use the verified Git commit as the image tag for repeatable releases.
+# Deployment uses prebuilt images with --no-build; see docs/deploy/PRODUCCION.md.
 services:
   api:
     image: openfunnel-api:${OPENFUNNEL_RELEASE:?Set the verified release commit}
   web:
     image: openfunnel-web:${OPENFUNNEL_RELEASE:?Set the verified release commit}
 
+# Reuse the dedicated network provisioned on the VPS. Its fixed bridge
+# name is used by the host firewall; Compose must not recreate this network.
+# Both services inherit it as their default network.
 networks:
   default:
     name: openfunnel
     external: true
 
+# Reuse the restored production database volume. External ownership keeps
+# it outside Compose deletion, including down --volumes; backups are still needed.
 volumes:
   app-data:
     name: openfunnel_app-data

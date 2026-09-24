@@ -1,8 +1,12 @@
+# Base stack: one API/worker and one web server, built from separate targets.
+# Supply a dedicated environment file with --env-file; see docs/deploy/DOCKER.md.
 services:
   api:
     build:
       context: .
       target: api
+    # Only the backend receives credentials and provider keys at runtime.
+    # :? requires a value; :- allows an empty value for optional integrations.
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -18,45 +22,63 @@ services:
       LLM_BASE_URL: ${DOCKER_LLM_BASE_URL:-}
       LLM_API_KEY: ${DOCKER_LLM_API_KEY:-}
       LLM_MODEL: ${DOCKER_LLM_MODEL:-}
+    # Keep SQLite outside the container so rebuilds preserve business data.
     volumes:
       - app-data:/app/data
+    # Forward termination signals and reap child processes.
     init: true
+    # Lock the image filesystem; allow temporary files only in memory.
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
+    # Remove Linux capabilities and prevent privilege escalation.
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
+    # Restart after failure or Docker startup unless explicitly stopped.
     restart: unless-stopped
+    # Give the worker time to finish in-flight work before forced shutdown.
     stop_grace_period: 3m
+    # SQLite and the message queue require exactly one API/worker instance.
     deploy:
       replicas: 1
+    # Rotate container logs to bound disk usage.
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
 
+  # Nginx serves the built frontend and forwards /api over the Compose network.
   web:
     build:
       context: .
       target: web
+    # Bind only to host loopback; the API has no published host port.
+    # Production host Nginx handles public HTTPS and forwards to this port.
     ports:
       - "127.0.0.1:${DOCKER_HTTP_PORT:-8080}:8080"
+    # Wait for a healthy API on startup; this is not continuous supervision.
     depends_on:
       api:
         condition: service_healthy
+    # Lock the image filesystem; allow temporary files only in memory.
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
+    # Remove Linux capabilities and prevent privilege escalation.
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
+    # Restart after failure or Docker startup unless explicitly stopped.
     restart: unless-stopped
     stop_grace_period: 30s
+    # Rotate container logs to bound disk usage.
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
 
+# Compose creates this volume for the base stack. Never remove business data
+# with down --volumes; production overrides it with an external volume.
 volumes:
   app-data:
