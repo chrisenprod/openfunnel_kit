@@ -223,7 +223,10 @@ antes de volver a una versión previa del esquema; no hay migraciones destructiv
 rollback automáticas. Los backups contienen datos de negocio y hashes/secretos de auth,
 por lo que permanecen fuera del directorio público y de Git.
 
-El despliegue automático se define en `deploy-app.yml`, separado del CI. Solo
+El despliegue automático Publicar VPS se define en `deploy-app.yml`, separado del CI.
+App y landing son destinos habilitables por instalación y se publican solo cuando
+cambian sus entradas. La landing usa configuración externa y archivos estáticos
+sin reiniciar servicios; ver [LANDING-VPS-ACTIONS.md](deploy/LANDING-VPS-ACTIONS.md). Solo
 publica main verificado mediante una cuenta SSH con comando forzado y validación
 independiente del CI en el VPS. Una unidad systemd mantiene el trabajo independiente
 de SSH; el lock del host y Actions serializan. Backup, guard de migraciones y

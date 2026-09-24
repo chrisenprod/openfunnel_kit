@@ -670,7 +670,8 @@ Las pruebas y las correcciones de seguridad acompañan todo el recorrido.
 
 Quedan fuera: alta disponibilidad, múltiples réplicas que escriban la misma base,
 Kubernetes, migración de motor de datos, registro público, multitenancy, facturación
-y aprovisionamiento de clientes. La landing conserva su publicación independiente.
+y aprovisionamiento de clientes. La landing conserva sus destinos Pages/Vercel para el curso y añade publicación
+VPS opcional tras CI, con configuración externa y selección independiente de cambios.
 
 ### 11.2. Criterios de aceptación
 

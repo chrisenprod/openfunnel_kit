@@ -37,6 +37,7 @@ const mode = process.env.TEST_MODE;
 const base = process.env.TEST_BASE;
 fs.appendFileSync(process.env.TEST_LOG, JSON.stringify([command,...args])+'\\n');
 if (command === 'git') {
+  if (args.includes('diff') && mode !== 'unchanged') process.exit(1);
   if (args.includes('rev-parse')) console.log(mode === 'stale' ? '${oldSha}' : '${newSha}');
 } else if (command === 'flock') {
   if (mode === 'locked') process.exit(1);
@@ -126,4 +127,15 @@ test('forced SSH command rejects shell, scp and command injection', () => {
     });
     assert.equal(result.status, 64, command);
   }
+});
+
+ test('app preserves containers for changes outside its build inputs', async t => {
+  const { result, calls, current } = await fixture(t, 'unchanged');
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(current.endsWith(oldSha));
+  assert.equal(calls.some(call => call[0] === 'docker' || call[0] === 'systemctl'), false);
+  const diff = calls.find(call => call[0] === 'git' && call.includes('diff'));
+  assert.ok(diff.includes('landing/brand.css'));
+  assert.ok(diff.includes('landing/assets/images/openfunnel-mark.webp'));
+  assert.equal(diff.includes('landing'), false);
 });

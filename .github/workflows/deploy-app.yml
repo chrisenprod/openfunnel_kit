@@ -1,4 +1,4 @@
-name: Publicar app
+name: Publicar VPS
 
 # This workflow runs from the default branch, never from pull request code.
 on:
@@ -18,15 +18,16 @@ concurrency:
 jobs:
   deploy:
     if: >-
+      vars.VPS_DEPLOY_ENABLED == 'true' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment:
       name: production
-      url: https://app.openfunnel.mocca.cl
+      url: ${{ vars.VPS_APP_URL || vars.VPS_LANDING_URL }}
     steps:
       # No checkout or upstream artifacts run in this job with production access.
       - name: Publicar commit verificado mediante SSH restringido
@@ -37,11 +38,16 @@ jobs:
           KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
           DEPLOY_HOST: ${{ vars.VPS_HOST }}
           DEPLOY_PORT: ${{ vars.VPS_PORT }}
+          DEPLOY_USER: ${{ vars.VPS_USER || 'openfunnel-deploy' }}
+          APP_ENABLED: ${{ vars.VPS_APP_ENABLED }}
+          LANDING_ENABLED: ${{ vars.VPS_LANDING_ENABLED }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ && "$CI_RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ && "$DEPLOY_PORT" =~ ^[0-9]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$APP_ENABLED" == true || "$LANDING_ENABLED" == true ]]
           test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
           umask 077
           ssh_dir=$(mktemp -d)
@@ -49,9 +55,18 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > "$ssh_dir/key"
           printf '%s\n' "$KNOWN_HOSTS" > "$ssh_dir/known_hosts"
           unset DEPLOY_KEY KNOWN_HOSTS
-          ssh -T -i "$ssh_dir/key" -p "$DEPLOY_PORT" \
-            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
-            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-            "openfunnel-deploy@$DEPLOY_HOST" "deploy $DEPLOY_SHA $CI_RUN_ID"
-          printf 'Publicación comprobada: `%s` · https://app.openfunnel.mocca.cl\n' "$DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$APP_ENABLED" == true ]]; then
+            ssh -T -i "$ssh_dir/key" -p "$DEPLOY_PORT" \
+              -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+              -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+              "$DEPLOY_USER@$DEPLOY_HOST" "deploy $DEPLOY_SHA $CI_RUN_ID"
+          fi
+          if [[ "$LANDING_ENABLED" == true ]]; then
+            ssh -T -i "$ssh_dir/key" -p "$DEPLOY_PORT" \
+              -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+              -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+              "$DEPLOY_USER@$DEPLOY_HOST" "deploy-landing $DEPLOY_SHA $CI_RUN_ID"
+          fi
+          printf 'Commit procesado: `%s`. Cada destino conserva su release si no cambiaron sus entradas.\n' "$DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"
