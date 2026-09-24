@@ -10,4 +10,4 @@
 
 ## 3. Verificación y entrega
 - [x] 3.1 Ejecutar tests, build, specs y Docker; documentar procedimiento, resultados y requisitos previos a publicación.
-- [x] 3.2 Publicar la implementación acumulada y workflow en GitHub y comprobar una ejecución real de CI. PR #2; Actions 36039039967 aprobado sobre 2ad9f20. Integración a main y despliegue pendientes.
+- [x] 3.2 Publicar la implementación acumulada y workflow en GitHub y comprobar una ejecución real de CI. PR #2; Actions 36039039967 aprobado sobre 2ad9f20. Integración a main y despliegue realizados posteriormente en publish-app-vps.

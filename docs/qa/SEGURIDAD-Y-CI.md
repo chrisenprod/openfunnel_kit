@@ -1,5 +1,7 @@
 # Seguridad y CI — verificación previa
 
+Informe previo a la publicación; evolución posterior en [PRODUCCION.md](PRODUCCION.md).
+
 Fecha: 2026-09-24. Alcance: app single admin, integración, imágenes locales,
 workflow y preparación privada de variables. No es una certificación ni la
 validación final de la app publicada.

@@ -1,8 +1,8 @@
 # CI y entorno de producción
 
-Actualizado: 2026-09-24. La app todavía no está publicada en el VPS.
+Actualizado: 2026-09-24. La app está publicada; operación en [PRODUCCION.md](PRODUCCION.md).
 CI verificado en el [PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2),
-pendiente de integrar a main. Ver [evidencia](../qa/SEGURIDAD-Y-CI.md).
+integrado a main. Ver [evidencia](../qa/SEGURIDAD-Y-CI.md).
 
 ## Verificación en GitHub
 
@@ -64,9 +64,10 @@ el entorno de ejecución; los permisos del archivo no los aíslan.
 
 ## Puerta de entrada al despliegue manual
 
-Antes de publicar: resolver mantenimiento y aislamiento de red del host, preparar
-TLS/proxy, usuario de operación, respaldos externos y restauración; seleccionar
-un commit con CI exitoso. No usar `git pull` sobre un checkout remoto con cambios
+La primera publicación resolvió aislamiento, TLS y traslado/restauración. El usuario
+aplazó expresamente Ubuntu; el respaldo externo automático sigue pendiente.
+Para futuras publicaciones, seleccionar un commit con CI exitoso y verificar los
+riesgos operativos. No usar `git pull` sobre un checkout remoto con cambios
 locales; preparar una release separada identificada por commit.
 
 Definir el traslado de SQLite y detener el receptor/worker anterior antes de

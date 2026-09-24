@@ -1,4 +1,6 @@
 # Only production inputs enter the builder, including intermediate layers.
+# Deny everything by default, then allow only the inputs listed below.
+# This keeps .env files, SQLite databases, Git history and backups out of builds.
 **
 !Dockerfile
 !.dockerignore
@@ -8,6 +10,7 @@
 !LICENSE
 !NOTICE
 !LICENSING.md
+# API source and migrations; exclude local data and generated files.
 !backend/
 backend/**
 !backend/*.js
@@ -17,6 +20,7 @@ backend/migrations/**
 !shared/
 shared/**
 !shared/*.js
+# Frontend source; Vite creates the production bundle inside the builder.
 !frontend/
 frontend/**
 !frontend/index.html
@@ -25,6 +29,7 @@ frontend/src/**
 !frontend/src/*.js
 !frontend/src/*.jsx
 !frontend/src/*.css
+# Include only the shared brand stylesheet, mark and license used by the app.
 !landing/
 landing/**
 !landing/LICENSE
@@ -34,6 +39,7 @@ landing/assets/**
 !landing/assets/images/
 landing/assets/images/**
 !landing/assets/images/openfunnel-mark.webp
+# Only the internal web-server configuration belongs in the image.
 !deploy/
 deploy/**
 !deploy/app.nginx.conf

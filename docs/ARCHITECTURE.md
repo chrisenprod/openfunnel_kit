@@ -59,15 +59,16 @@ No se usa `vite preview` como servidor de producción. Procedimiento en
 [DOCKER.md](deploy/DOCKER.md) y diseño en
 [`containerize-app`](../openspec/changes/containerize-app/design.md).
 
-La tercera etapa del PRD contempla publicar después en `app.openfunnel.mocca.cl`,
-con API en `/api` y HTTPS terminado por el proxy del VPS. Docker local no demuestra
-que esa instalación pública ya esté desplegada ni verificada.
+La app está publicada en `app.openfunnel.mocca.cl`, con API en `/api` y HTTPS
+terminado por Nginx del VPS. La release usa `compose.production.yaml`, red dedicada
+y volumen externos, firewall previo a Docker y una única API. Operación y riesgos
+pendientes en [PRODUCCION.md](deploy/PRODUCCION.md).
 
 La verificación de app en GitHub está definida en `.github/workflows/ci.yml` para
 main y PR, con pruebas sintéticas y sin secretos de producción. No despliega.
 El entorno del VPS se provisiona fuera del checkout con permisos privados;
-ver [CI y entorno](deploy/CI-Y-ENTORNO.md). La auditoría previa mantiene pendientes
-de infraestructura que deben resolverse antes de publicar la app.
+ver [CI y entorno](deploy/CI-Y-ENTORNO.md). La auditoría mantiene el riesgo de Ubuntu aplazado por decisión expresa del usuario;
+la publicación no implica que el mantenimiento esté resuelto.
 
 ## 3. Primera etapa implementada
 

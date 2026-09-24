@@ -645,11 +645,12 @@ completo. Este orden pertenece al PRD; no modifica el checklist reutilizable del
 
 ## 11. Tercera etapa: infraestructura y producción
 
-Estado: dockerización y auditoría previa realizadas; CI preparado y entorno privado
-transferido al VPS. CI comprobado en el PR #2; quedan su integración a main,
-hallazgos de infraestructura por resolver y publicación/verificación de la app.
-El despliegue existente sirve la landing; esta etapa lleva la app y su API al VPS para operación
-de un único administrador. No constituye el lanzamiento de OpenFunnel Cloud.
+Estado: primera instalación HTTPS publicada con datos migrados, aislamiento
+comprobado, CI en main y respaldos diarios/restauración probados. El mantenimiento
+de Ubuntu está aplazado por decisión expresa del usuario; exportación automática
+de respaldos, alertas externas y recorrido real nuevo de mensajería siguen pendientes.
+La tercera etapa completa no se da por cerrada. La app opera para un único
+administrador; no constituye el lanzamiento de OpenFunnel Cloud.
 La guía de trabajo reutilizable es el
 [checklist de infraestructura y producción](checklists/CHECKLIST-INFRAESTRUCTURA-PRODUCCION.md).
 
@@ -701,15 +702,17 @@ El primer cambio es `containerize-app`: imágenes, ejecución local con Docker y
 persistencia aislada para verificar la base de despliegue. El cambio
 `secure-production-preflight` añade auditoría, CI y preparación privada de variables;
 ver [procedimiento](deploy/CI-Y-ENTORNO.md) y [evidencia](qa/SEGURIDAD-Y-CI.md).
-La publicación, respaldo/restauración y validación operativa conservan tareas propias.
+`publish-app-vps` publica la instalación y conserva la evidencia y pendientes en
+[operación](deploy/PRODUCCION.md) y [verificación](qa/PRODUCCION.md).
 
 Dominio de la app acordado: `app.openfunnel.mocca.cl`, con API bajo `/api`;
 la landing conserva `openfunnel.mocca.cl`. El usuario configuró el registro A al VPS.
-Antes del despliegue se concretarán recursos y arquitectura
-del VPS, acceso de operación, registro de imágenes, conservación o traslado de
-datos, retención/destino de respaldos y destino de alertas. Estas decisiones no
-bloquean preparar contenedores locales. No sustituir el dominio de la landing
-ni trasladar datos reales como supuesto de implementación.
+La release usa imágenes locales del VPS etiquetadas por commit, una sola API y
+datos trasladados con autorización. Existen copias diarias privadas con siete días
+de retención y una copia inicial fuera del VPS; falta automatizar esa exportación
+y definir destinos de alertas. El usuario autorizó publicar después de aislar
+Docker y posponer Ubuntu, como excepción temporal al criterio 11.2.4. No marcar
+ese riesgo como resuelto ni los criterios de operación pendientes como cumplidos.
 
 ## 12. Alcance posterior y decisiones pendientes
 
