@@ -17,9 +17,15 @@ const cliEnv = { ...process.env };
 // Keep Docker connectivity settings, but never inherit application settings.
 for (const key of Object.keys(cliEnv))
   if (/^COMPOSE_|^DOCKER_(APP_|ADMIN_|HTTP_|BETTER_|ZERNIO_|PUBLIC_|LLM_)/.test(key)) delete cliEnv[key];
-const run = async (args, options = {}) => {
+const run = async (args, { logOutput = false, ...options } = {}) => {
   try {
-    return (await exec('docker', args, { cwd: root, env: cliEnv, maxBuffer: 16 * 1024 * 1024, ...options })).stdout.trim();
+    const result = exec('docker', args, { cwd: root, env: cliEnv, maxBuffer: 16 * 1024 * 1024, ...options });
+    // Only builds opt in: configuration and runtime inspection can contain secrets.
+    if (logOutput) {
+      result.child.stdout.pipe(process.stdout);
+      result.child.stderr.pipe(process.stderr);
+    }
+    return (await result).stdout.trim();
   } catch (error) {
     // Arguments/config may contain synthetic credentials: do not echo them.
     throw new Error(`Docker command failed (${args[0]}, exit ${error.code}). ${error.stderr?.slice(-1800) || ''}`);
@@ -73,7 +79,9 @@ try {
   assert.equal(resolved.services.api.environment.DATABASE_PATH, '/app/data/app.sqlite');
   assert.equal(resolved.services.api.ports, undefined);
   assert.equal(resolved.services.web.ports[0].host_ip, '127.0.0.1');
-  await compose('build');
+  await run(['compose', '--env-file', envFile, '-p', project, 'build'], {
+    logOutput: true, timeout: 10 * 60 * 1000,
+  });
 
   console.log('Docker: inspecting allowed build context with harmless sentinels…');
   for (const path of sentinels) await writeFile(path, 'not-a-secret-context-sentinel', { flag: 'wx' });
