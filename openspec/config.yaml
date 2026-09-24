@@ -12,7 +12,8 @@ context: |
   PRD §11 define infraestructura y producción: containerize-app implementa Docker local;
   secure-production-preflight añade auditoría previa, CI y preparación privada del entorno.
   publish-app-vps publica HTTPS y traslada datos con aislamiento y respaldo verificados;
-  CI está integrado en main. Ubuntu está aplazado por el usuario; exportación automática
+  CI está integrado en main; automate-vps-deploy añade publicación automática tras CI,
+  acceso SSH restringido y recuperación de código. Ubuntu está aplazado por el usuario; exportación automática
   de respaldos, alertas y nuevo recorrido real de mensajería siguen pendientes.
   Para la UI, seguir docs/DESIGN_SYSTEM.md: dirección Campo de tinta, tokens por tema,
   componentes y estados accesibles. Los antecedentes en docs/referencias-visuales/

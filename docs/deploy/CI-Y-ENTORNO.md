@@ -16,7 +16,8 @@ El test Docker construye ambas imágenes y verifica auth, proxy, cabeceras, lím
 webhooks, persistencia, ausencia de secretos en el contexto, usuario no root y
 recuperación con datos sintéticos. El resumen identifica el commit comprobado.
 No requiere secretos de GitHub, credenciales SSH ni claves de proveedores.
-No publica imágenes ni despliega al pasar CI. El flujo manual de la landing sigue
+Este workflow no publica imágenes ni despliega; Publicar app consume su resultado
+exitoso para main. El flujo manual de la landing sigue
 siendo independiente. Una vulnerabilidad alta o crítica informada por npm bloquea CI.
 
 Desde un checkout en la raíz, con Docker y Compose disponibles:
@@ -62,7 +63,7 @@ No ejecutar `config` sin `--quiet`, ni registrar `docker inspect` completo de la
 API: ambos pueden mostrar secretos. Root y administradores de Docker pueden leer
 el entorno de ejecución; los permisos del archivo no los aíslan.
 
-## Puerta de entrada al despliegue manual
+## Despliegue automático de la app
 
 La primera publicación resolvió aislamiento, TLS y traslado/restauración. El usuario
 aplazó expresamente Ubuntu; el respaldo externo automático sigue pendiente.
@@ -74,7 +75,61 @@ Definir el traslado de SQLite y detener el receptor/worker anterior antes de
 activar el nuevo webhook. Registrar las cuentas de prueba autorizadas. La reversión
 debe contemplar compatibilidad del esquema y respaldo, no solo imágenes anteriores.
 
-El despliegue inicial será manual. Un futuro job de despliegue deberá usar un
-environment protegido, autorización explícita, concurrencia sin cancelación del
-despliegue activo y acceso SSH restringido. Esta entrega no guarda una clave root
-en Actions ni automatiza cambios sobre el VPS compartido.
+El usuario autorizó automatizar las actualizaciones mediante
+`.github/workflows/deploy-app.yml` (**Publicar app**). Se activa al terminar
+**Verificar app** con éxito sobre main del repositorio propio (push o ejecución
+manual de CI). Un PR nunca accede al environment de producción. Los workflows
+permanecen separados: las pruebas no reciben claves de producción.
+
+El environment `production` permite únicamente la rama `main`. Contiene el secreto
+`VPS_DEPLOY_KEY` y las variables `VPS_HOST`, `VPS_PORT`, `VPS_KNOWN_HOSTS`; esta última
+fija la clave pública del host obtenida mediante el acceso SSH previamente verificado.
+No usar `ssh-keyscan` sin verificación ni desactivar StrictHostKeyChecking. Las claves
+de negocio y SQLite permanecen exclusivamente en el VPS. El job no usa checkout,
+artefactos ni cachés del workflow origen. No requiere revisión manual en cada
+publicación porque se autorizó la automatización.
+
+La cuenta `openfunnel-deploy` tiene una clave exclusiva con `restrict` y comando
+forzado. Su home y authorized_keys son propiedad de root. No pertenece al grupo
+Docker y sudo solo permite `/usr/local/sbin/openfunnel-deploy`. El wrapper admite
+`deploy <SHA de 40 caracteres> <ID numérico de CI>` y rechaza shell, scp y forwarding.
+El dispatcher y el worker se instalan root-owned desde:
+
+- `deploy/openfunnel-deploy-ssh.sh` → `/usr/local/sbin/openfunnel-deploy-ssh`.
+- `deploy/openfunnel-deploy.sh` → `/usr/local/sbin/openfunnel-deploy`.
+- `deploy/openfunnel-release.sh` → `/usr/local/libexec/openfunnel-release`.
+
+El worker valida de forma independiente el resultado, workflow, repositorio, rama y
+SHA mediante la API pública de GitHub, descarga solo main del remoto fijo y vuelve
+a comprobar su punta después de construir. Una versión obsoleta o un fallo de GitHub
+bloquean la publicación. No se guarda un token GitHub en el servidor.
+
+El workflow serializa publicaciones sin cancelar la activa. El VPS añade un lock y
+una unidad transitoria systemd `openfunnel-deploy-<SHA>`: una desconexión SSH no
+interrumpe la ejecución supervisada. Los logs quedan en el journal. La publicación
+construye imágenes por SHA, rechaza cambios de migraciones/migrador, crea un respaldo
+verificado, sustituye la misma API/web y comprueba salud por loopback y HTTPS.
+Ante fallo tras comenzar el corte intenta recuperar el código anterior sobre la
+misma base; la ejecución sigue marcada como fallida. Nunca restaura SQLite sola.
+
+### Operación y límites
+
+- Para publicar: integrar un PR a main y esperar **Verificar app → Publicar app**.
+- Para reintentar: volver a ejecutar el job fallido de Publicar app, siempre que su
+  commit siga en punta de main. También se puede ejecutar Verificar app manualmente
+  sobre main. No se aceptan SHAs históricos para retroceder silenciosamente.
+- Consultar `journalctl -u openfunnel-deploy-<SHA>` por acceso administrativo.
+  Si falló recuperación, intervenir siguiendo [PRODUCCION.md](PRODUCCION.md).
+- Cambios de migraciones requieren revisión/publicación manual de compatibilidad;
+  cambios indirectos de escritura también deben revisarse antes de integrar.
+- Los scripts instalados, firewall, TLS, usuarios y respaldo no se autoactualizan.
+  Sus cambios requieren instalación administrativa explícita. Las releases e imágenes
+  se conservan para recuperación; vigilar disco y limpiar solo versiones descartadas.
+- Una clave restringida no hace seguro código malicioso aceptado en main: los
+  mantenedores con permiso de integración son una frontera de confianza, y Docker
+  tiene privilegios sobre el host. El job se limita a este repositorio/instalación.
+- La reversión tiene pruebas sintéticas de fallo; la publicación real se registra en
+  [QA de despliegue](../qa/DESPLIEGUE-AUTOMATICO.md), sin provocar caídas productivas.
+
+Referencia: [eventos workflow_run de GitHub](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)
+y [environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).

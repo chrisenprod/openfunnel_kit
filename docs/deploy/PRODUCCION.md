@@ -2,7 +2,7 @@
 
 Publicada el 2026-09-24 en **https://app.openfunnel.mocca.cl**, API bajo `/api`.
 La landing conserva https://openfunnel.mocca.cl. CI está integrado en main;
-el despliegue sigue siendo manual. El usuario aplazó expresamente el mantenimiento
+el despliegue automático se configura en [CI-Y-ENTORNO.md](CI-Y-ENTORNO.md). El usuario aplazó expresamente el mantenimiento
 de Ubuntu: es un riesgo pendiente, no corregido por el aislamiento de Docker.
 
 ## Instalación

@@ -222,3 +222,10 @@ No copiar solo el archivo principal durante escrituras. Restaurar una copia comp
 antes de volver a una versión previa del esquema; no hay migraciones destructivas de
 rollback automáticas. Los backups contienen datos de negocio y hashes/secretos de auth,
 por lo que permanecen fuera del directorio público y de Git.
+
+El despliegue automático se define en `deploy-app.yml`, separado del CI. Solo
+publica main verificado mediante una cuenta SSH con comando forzado y validación
+independiente del CI en el VPS. Una unidad systemd mantiene el trabajo independiente
+de SSH; el lock del host y Actions serializan. Backup, guard de migraciones y
+rollback de código preservan el volumen existente. Detalles y límites en
+[CI-Y-ENTORNO.md](deploy/CI-Y-ENTORNO.md).
