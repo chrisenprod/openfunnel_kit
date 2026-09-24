@@ -18,8 +18,10 @@ const cliEnv = { ...process.env };
 for (const key of Object.keys(cliEnv))
   if (/^COMPOSE_|^DOCKER_(APP_|ADMIN_|HTTP_|BETTER_|ZERNIO_|PUBLIC_|LLM_)/.test(key)) delete cliEnv[key];
 const run = async (args, { logOutput = false, ...options } = {}) => {
+  const operation = args[0] === 'compose' ? `compose ${args[5]}` : args[0];
+  console.log(`Docker command: ${operation}`);
   try {
-    const result = exec('docker', args, { cwd: root, env: cliEnv, maxBuffer: 16 * 1024 * 1024, ...options });
+    const result = exec('docker', args, { cwd: root, env: cliEnv, timeout: 240000, maxBuffer: 16 * 1024 * 1024, ...options });
     // Only builds opt in: configuration and runtime inspection can contain secrets.
     if (logOutput) {
       result.child.stdout.pipe(process.stdout);
@@ -28,7 +30,7 @@ const run = async (args, { logOutput = false, ...options } = {}) => {
     return (await result).stdout.trim();
   } catch (error) {
     // Arguments/config may contain synthetic credentials: do not echo them.
-    throw new Error(`Docker command failed (${args[0]}, exit ${error.code}). ${error.stderr?.slice(-1800) || ''}`);
+    throw Object.assign(new Error(`Docker command failed (${operation}, exit ${error.code}, signal ${error.signal || 'none'}). ${error.stderr?.slice(-1800) || ''}`), { code: error.code, killed: error.killed });
   }
 };
 const envFile = join(directory, 'test.env');
@@ -162,7 +164,12 @@ try {
 
   // Stop the sole worker before checking a read-only mount of this test volume.
   await compose('stop', 'api');
-  await assert.rejects(compose('run', '--rm', '--no-deps', '--volume', `${project}_app-data:/app/data:ro`, 'api'));
+  await assert.rejects(
+    run(['compose', '--env-file', envFile, '-p', project, 'run', '--rm', '--no-deps',
+      '--volume', `${project}_app-data:/app/data:ro`, 'api'], { timeout: 30000 }),
+    error => !error.killed && error.code === 1 && /readonly database|SQLITE_READONLY/.test(error.message),
+    'A read-only database must fail to start, not hang or fail for an unrelated reason',
+  );
   await compose('up', '-d', '--wait', '--wait-timeout', '90');
   await health();
   assert.equal((await compose('ps', '-q', 'api')).split('\n').length, 1);
