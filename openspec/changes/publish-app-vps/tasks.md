@@ -11,4 +11,4 @@
 
 ## 3. Operación
 - [x] 3.1 Configurar respaldo diario, probar restauración y guardar copia inicial fuera del VPS; documentar destino automático pendiente si no está definido.
-- [ ] 3.2 Verificar producción, salud, puertos, permisos y reinicio de app; registrar release, reversión y riesgos aplazados.
+- [x] 3.2 Verificar producción, salud, puertos, permisos y reinicio de app; registrar release, reversión y riesgos aplazados. Evidencia en docs/qa/PRODUCCION.md; release 7cba4a0.

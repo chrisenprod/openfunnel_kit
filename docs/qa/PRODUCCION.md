@@ -20,6 +20,12 @@ servidor identifica la revisión operativa actual.
 - API Zernio y Chat Completions/tools de Azure/Luna validados desde el VPS.
 - Respaldo diario ejecutado e integridad comprobada; restauración de una copia
   real en volumen aislado y copia privada inicial fuera del VPS verificadas.
+- Certbot renovó correctamente en dry run; el hook de recarga se comprobó por
+  separado (la versión instalada no ejecuta deploy hooks en dry run).
+- Release operativa `7cba4a06857a1b2e335af616df7daaf420895d0d`, con volumen externo:
+  recreación real de web/API aprobada, nueva identidad del contenedor API,
+  integridad/FK correctas, datos y estados IA conservados, salud y respaldo
+  posterior correctos. Ningún otro servicio Docker fue reiniciado.
 
 Ubuntu se mantiene pendiente por decisión expresa del usuario. El aislamiento
 de red no corrige ese riesgo. Exportación automática de respaldos fuera del VPS
