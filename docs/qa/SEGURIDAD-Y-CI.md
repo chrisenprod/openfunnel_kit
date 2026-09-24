@@ -25,8 +25,19 @@ validación final de la app publicada.
 ## CI y configuración
 
 Workflow sin secretos de producción, permisos de lectura y acciones fijadas por
-SHA. Validación con actionlint y comandos equivalentes locales; la evidencia de
-ejecución remota se registra tras publicar el workflow.
+SHA. Validación con actionlint y comandos equivalentes locales. Ejecución real en
+Linux aprobada: [Actions 36039039967](https://github.com/chrisenprod/openfunnel_kit/actions/runs/36039039967),
+commit `2ad9f2099e471f15e3065aa9d9492674d67ea7f8`, en el
+[PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2). La integración a main
+queda pendiente; no hubo despliegue.
+
+CI detectó una prueba de solo lectura que podía bloquearse al sobreescribir el
+volumen con `compose run`. Se sustituyó por un montaje explícito del Engine,
+inspección de `RW=false`, espera acotada y comprobación de error SQLite. WAL puede
+fallar con CANTOPEN al no poder crear archivos auxiliares; se verifica ese caso
+además del error de escritura. Un timeout o error ajeno ya no cuenta como éxito.
+La prueba final pasó tanto localmente como en Linux. Las operaciones Docker tienen
+límite de tiempo y registran su nombre, sin volcar argumentos ni configuración.
 
 Entorno transferido por SSH con verificación de integridad y permisos. No se
 arrancaron servicios, movieron bases, registraron webhooks ni activaron canales.

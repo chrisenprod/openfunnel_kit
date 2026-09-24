@@ -1,6 +1,8 @@
 # CI y entorno de producción
 
 Actualizado: 2026-09-24. La app todavía no está publicada en el VPS.
+CI verificado en el [PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2),
+pendiente de integrar a main. Ver [evidencia](../qa/SEGURIDAD-Y-CI.md).
 
 ## Verificación en GitHub
 

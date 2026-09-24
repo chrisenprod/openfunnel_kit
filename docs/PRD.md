@@ -646,8 +646,8 @@ completo. Este orden pertenece al PRD; no modifica el checklist reutilizable del
 ## 11. Tercera etapa: infraestructura y producción
 
 Estado: dockerización y auditoría previa realizadas; CI preparado y entorno privado
-transferido al VPS. Quedan hallazgos de infraestructura por resolver, activación de
-CI en GitHub y publicación/verificación de la app.
+transferido al VPS. CI comprobado en el PR #2; quedan su integración a main,
+hallazgos de infraestructura por resolver y publicación/verificación de la app.
 El despliegue existente sirve la landing; esta etapa lleva la app y su API al VPS para operación
 de un único administrador. No constituye el lanzamiento de OpenFunnel Cloud.
 La guía de trabajo reutilizable es el

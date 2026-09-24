@@ -24,11 +24,13 @@ local aislada; tareas y verificación en
 para publicarla es `app.openfunnel.mocca.cl`, con API en `/api`. La publicación
 existente de la landing no implica que la app esté desplegada en el VPS.
 
-El workflow [Verificar app](.github/workflows/ci.yml) prepara CI para main y PR:
+El workflow [Verificar app](.github/workflows/ci.yml) configura CI para main y PR:
 tests, specs, auditoría npm, builds y prueba Docker aislada, sin despliegue ni claves
 de producción. La [guía de CI y entorno](docs/deploy/CI-Y-ENTORNO.md) documenta la
 configuración privada del VPS y los requisitos pendientes de publicación;
 resultados en [seguridad y CI](docs/qa/SEGURIDAD-Y-CI.md).
+Verificado en GitHub en el [PR #2](https://github.com/chrisenprod/openfunnel_kit/pull/2);
+su integración a main sigue pendiente.
 
 La implementación de esta etapa se sigue en las
 [tareas de la base](openspec/changes/platform-foundation/tasks.md) y las
