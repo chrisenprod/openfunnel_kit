@@ -1,0 +1,10 @@
+services:
+  api:
+    image: openfunnel-api:${OPENFUNNEL_RELEASE:?Set the verified release commit}
+  web:
+    image: openfunnel-web:${OPENFUNNEL_RELEASE:?Set the verified release commit}
+
+networks:
+  default:
+    name: openfunnel
+    external: true

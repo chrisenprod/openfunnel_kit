@@ -1,0 +1,13 @@
+[Unit]
+Description=OpenFunnel container network isolation
+Before=docker.service
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/openfunnel-firewall apply
+ExecReload=/usr/local/sbin/openfunnel-firewall apply
+RemainAfterExit=yes
+
+[Install]
+RequiredBy=docker.service
