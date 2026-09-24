@@ -17,7 +17,7 @@ const cliEnv = { ...process.env };
 // Keep Docker connectivity settings, but never inherit application settings.
 for (const key of Object.keys(cliEnv))
   if (/^COMPOSE_|^DOCKER_(APP_|ADMIN_|HTTP_|BETTER_|ZERNIO_|PUBLIC_|LLM_)/.test(key)) delete cliEnv[key];
-const run = async (args, { logOutput = false, ...options } = {}) => {
+const run = async (args, { logOutput = false, combineOutput = false, ...options } = {}) => {
   const operation = args[0] === 'compose' ? `compose ${args[5]}` : args[0];
   console.log(`Docker command: ${operation}`);
   try {
@@ -27,7 +27,8 @@ const run = async (args, { logOutput = false, ...options } = {}) => {
       result.child.stdout.pipe(process.stdout);
       result.child.stderr.pipe(process.stderr);
     }
-    return (await result).stdout.trim();
+    const output = await result;
+    return (output.stdout + (combineOutput ? output.stderr : '')).trim();
   } catch (error) {
     // Arguments/config may contain synthetic credentials: do not echo them.
     throw Object.assign(new Error(`Docker command failed (${operation}, exit ${error.code}, signal ${error.signal || 'none'}). ${error.stderr?.slice(-1800) || ''}`), { code: error.code, killed: error.killed });
@@ -164,12 +165,27 @@ try {
 
   // Stop the sole worker before checking a read-only mount of this test volume.
   await compose('stop', 'api');
-  await assert.rejects(
-    run(['compose', '--env-file', envFile, '-p', project, 'run', '--rm', '--no-deps',
-      '--volume', `${project}_app-data:/app/data:ro`, 'api'], { timeout: 30000 }),
-    error => !error.killed && error.code === 1 && /readonly database|SQLITE_READONLY/.test(error.message),
-    'A read-only database must fail to start, not hang or fail for an unrelated reason',
-  );
+  const readonlyName = `${project}-readonly`;
+  const runtimeEnv = join(directory, 'readonly.env');
+  await writeFile(runtimeEnv, Object.entries(resolved.services.api.environment)
+    .map(([key, value]) => `${key}=${value}`).join('\n') + '\n', { mode: 0o600 });
+  try {
+    // An explicit engine mount avoids version-dependent Compose run volume merging.
+    await run(['run', '-d', '--name', readonlyName, '--network', 'none', '--init',
+      '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
+      '--mount', `type=volume,source=${project}_app-data,target=/app/data,readonly`,
+      '--env-file', runtimeEnv, stopped.Config.Image]);
+    const [readonly] = JSON.parse(await run(['inspect', readonlyName]));
+    assert.equal(readonly.Mounts.find(m => m.Destination === '/app/data').RW, false);
+    assert.equal(await run(['wait', readonlyName], { timeout: 30000 }), '1',
+      'The API must fail to start with a read-only database');
+    const failure = await run(['logs', readonlyName], { combineOutput: true });
+    assert.match(failure, /ERR_SQLITE_ERROR/);
+    // WAL initialization can report CANTOPEN when it cannot create its sidecars.
+    assert.match(failure, /readonly database|unable to open database file/);
+  } finally {
+    await run(['rm', '--force', readonlyName]).catch(() => {});
+  }
   await compose('up', '-d', '--wait', '--wait-timeout', '90');
   await health();
   assert.equal((await compose('ps', '-q', 'api')).split('\n').length, 1);
