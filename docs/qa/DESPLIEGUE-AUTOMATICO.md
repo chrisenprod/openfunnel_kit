@@ -17,8 +17,26 @@ host key fijada y usuario sin grupo Docker. El comando SSH `id` fue rechazado.
 
 ## Ejecución real
 
-Acceso restringido instalado. Pendiente ejecutar el workflow desde main.
-No dar por terminado el cambio hasta registrar resultado y SHA publicado.
+Primera ejecución real completada desde Actions, sin publicación manual del commit:
+
+- [PR #4](https://github.com/chrisenprod/openfunnel_kit/pull/4), integrado a main.
+- SHA publicado: `34010a4fc8c9367d21c2c3d9c15dd4aafbe3a94d`.
+- [CI de main](https://github.com/chrisenprod/openfunnel_kit/actions/runs/36047673183): success.
+- [Publicar app](https://github.com/chrisenprod/openfunnel_kit/actions/runs/36047847361): success; el journal confirma Deployed and healthy.
+- `current/RELEASE` coincide con ese SHA. API y web healthy; únicamente la API usa
+  el volumen operativo. El respaldo previo terminó con Result=success.
+- Login, cookie segura, salud, consulta de datos, canales y configuración del agente
+  comprobados por HTTPS. Historial conservado y webhook Zernio registrado; Luna
+  permanece configurado. No se enviaron mensajes de prueba a terceros.
+- Comparación privada antes/después: contenido del entorno sin cambios y los diez
+  contenedores de otras apps mantienen exactamente sus identificadores. No hubo
+  reinicio del host, Docker, Nginx ni servicios ajenos a OpenFunnel.
+- Se comprobó además el rechazo real del dispatcher ante un CI de PR que no
+  corresponde al SHA solicitado, antes de cambiar la release.
+
+La clave privada temporal de aprovisionamiento se retira tras verificar el flujo;
+Actions conserva su copia como secreto del environment. La recuperación ante fallos
+se probó de forma sintética, sin provocar deliberadamente una caída productiva.
 
 ## Pendientes ajenos al cambio
 
