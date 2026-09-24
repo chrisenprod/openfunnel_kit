@@ -1,0 +1,58 @@
+schema: spec-driven
+
+context: |
+  Escribir los artefactos en español. Conservar los encabezados estructurales
+  de OpenSpec y las palabras SHALL/MUST en inglés para validar las specs.
+  OpenFunnel es un motor conversacional abierto; leer docs/CONCEPTO.md, docs/PRD.md y AGENTS.md
+  antes de proponer cambios. docs/PRD.md propone la primera etapa: acceso single user
+  con admin_user/admin_pass, esquema de datos y CRUD de los módulos base con tickets
+  y pipelines. Concretar sus supuestos al especificar. El PRD §10 define ahora Zernio y SDK OpenAI/Azure para la segunda etapa;
+  API keys para consumidores externos y MCP quedan para después. El checklist del MVP es reutilizable,
+  no un roadmap del producto.
+  PRD §11 define infraestructura y producción: containerize-app implementa Docker local;
+  secure-production-preflight añade auditoría previa, CI y preparación privada del entorno.
+  La app en VPS, respaldos y validación operativa siguen pendientes; revisar tareas para
+  distinguir workflow preparado de ejecución real en GitHub.
+  Para la UI, seguir docs/DESIGN_SYSTEM.md: dirección Campo de tinta, tokens por tema,
+  componentes y estados accesibles. Los antecedentes en docs/referencias-visuales/
+  son locales e ignorados por Git; no depender de ellos para implementar.
+  Consultar docs/ARCHITECTURE.md para distinguir la base técnica actual de la propuesta.
+  La raíz de docs/ contiene solo CONCEPTO.md, PRD.md, DESIGN_SYSTEM.md y ARCHITECTURE.md;
+  el resto se organiza en subcarpetas como checklists/ y deploy/.
+  Stack: React + Vite con JavaScript y CSS en frontend/; Node.js >=24.13.0
+  con node:http en backend/; SQLite con node:sqlite en backend/db.js, sin ORM.
+  Módulos ES, npm y un único package.json/package-lock.json en la raíz.
+  El CLI se ejecuta con npm run openspec -- <comando>, también al seguir ejemplos
+  de las skills que usan openspec directamente. Validar con npm run spec:validate.
+  Mantener el proyecto simple. No añadir TypeScript, frameworks ni capas
+  sin una necesidad concreta. Crear tablas solo al implementar su funcionalidad.
+  Estado actual: auth single user con Better Auth y CRUD manual de la primera etapa;
+  migraciones SQL en backend/migrations/ y campos compartidos en shared/resources.js.
+  GET /api/health conserva consulta real SQLite sin sesión. El cambio connected-conversations añade integración Zernio,
+  worker SQLite y SDK OpenAI; consultar sus tareas para distinguir implementación
+  de verificación real pendiente. Pruebas de API con npm test y SQLite temporal.
+  Núcleo e interfaz bajo Apache-2.0; respetar LICENSING.md y permisos separados
+  de landing e identidad. Nunca guardar secretos ni exponerlos mediante VITE_*.
+
+rules:
+  proposal:
+    - Incluir alcance, exclusiones y decisiones pendientes según lo acordado para el cambio.
+    - Distinguir capacidades existentes, propuestas e hipótesis; no presentar pendientes como implementados.
+  specs:
+    - Escribir requisitos verificables con SHALL/MUST y escenarios con WHEN/THEN; incluir fallos relevantes.
+    - Para mensajes, ejecuciones y entregas, cubrir duplicados, reintentos y control humano cuando corresponda.
+  design:
+    - Respetar el stack; explicar solo las decisiones técnicas necesarias y sus alternativas.
+    - Cuando aplique, concretar contratos de API, persistencia, permisos, concurrencia e idempotencia.
+  tasks:
+    - Organizar tareas pequeñas y comprobables; incluir validación de specs, build y endpoints afectados.
+    - Marcar completado solo con evidencia y actualizar la documentación cuando corresponda.
+
+operations:
+  apply:
+    guidance:
+      - Leer los artefactos antes de implementar y mantenerlos alineados si cambia el alcance.
+      - Resolver decisiones rutinarias dentro del alcance autorizado; consultar solo decisiones de producto que bloqueen el cambio.
+  archive:
+    guidance:
+      - Verificar criterios de aceptación, validar specs y sincronizar especificaciones antes de cerrar el cambio.

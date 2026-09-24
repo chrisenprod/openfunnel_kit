@@ -1,0 +1,62 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3001"
+      DATABASE_PATH: /app/data/app.sqlite
+      APP_ORIGIN: ${DOCKER_APP_ORIGIN:?Define DOCKER_APP_ORIGIN en el archivo de entorno dedicado}
+      admin_user: ${DOCKER_ADMIN_USER:?Define DOCKER_ADMIN_USER en el archivo de entorno dedicado}
+      admin_pass: ${DOCKER_ADMIN_PASS:?Define DOCKER_ADMIN_PASS en el archivo de entorno dedicado}
+      BETTER_AUTH_SECRET: ${DOCKER_BETTER_AUTH_SECRET:-}
+      ZERNIO_API_KEY: ${DOCKER_ZERNIO_API_KEY:-}
+      PUBLIC_BASE_URL: ${DOCKER_PUBLIC_BASE_URL:-}
+      ZERNIO_WEBHOOK_SECRET: ${DOCKER_ZERNIO_WEBHOOK_SECRET:-}
+      LLM_BASE_URL: ${DOCKER_LLM_BASE_URL:-}
+      LLM_API_KEY: ${DOCKER_LLM_API_KEY:-}
+      LLM_MODEL: ${DOCKER_LLM_MODEL:-}
+    volumes:
+      - app-data:/app/data
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 3m
+    deploy:
+      replicas: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "127.0.0.1:${DOCKER_HTTP_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  app-data:

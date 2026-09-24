@@ -93,7 +93,7 @@ de su servicio cloud. La licencia no da acceso administrativo a sus cuentas,
 dominios, infraestructura, credenciales o datos de clientes.
 
 El núcleo, la interfaz, API y MCP se publicarán abiertos según se implementen,
-conforme a [CONCEPTO.md](CONCEPTO.md). La infraestructura comercial privada del
+conforme a [CONCEPTO.md](docs/CONCEPTO.md). La infraestructura comercial privada del
 cloud —aprovisionamiento, facturación y operación— debe mantenerse separada del
 código abierto y contar con avisos explícitos si llega a distribuirse. Una mención
 al cloud no convierte automáticamente en privado código publicado bajo Apache-2.0.
