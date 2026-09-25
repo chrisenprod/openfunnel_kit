@@ -48,13 +48,15 @@ y desbordamiento móvil del panel. Hay regresión automatizada del arranque clou
 
 No se enviaron correos reales durante las pruebas ni se usaron Zernio/LLM reales;
 no se cobraron consumos ni se enviaron mensajes a terceros. Falta que el dueño
-cree su cuenta y confirme el enlace recibido mediante Resend. No se migró la
-SQLite operativa ni se habilitó cloud en producción. La migración se ensayó con
-datos sintéticos; su aplicación real requiere respaldo y revisión de colas.
+cree su cuenta y confirme el enlace recibido mediante Resend. Cloud se activó
+posteriormente como instalación nueva; la SQLite anterior se conserva intacta.
+La migración al espacio del dueño se ensayó solo con datos sintéticos y no se
+aplicó a producción. Ver [publicación cloud](PUBLICACION-CLOUD.md).
 
 Las pruebas de aislamiento y destino no equivalen a una certificación de seguridad.
-Para abrir una oferta comercial siguen pendientes pagos, condiciones del servicio,
-respaldos externos y revisión de capacidad/abuso. El límite de cuentas incluye
+Los pagos están implementados, pero falta comprobar una compra y entrega real de
+Polar. Siguen pendientes respaldos externos automáticos y revisión de
+capacidad/abuso. El límite de cuentas incluye
 registros pendientes; no se ha añadido limpieza automática de esas cuentas.
 
 ### Ayuda de contraseña (2026-09-25)

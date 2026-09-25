@@ -5,6 +5,14 @@ La landing conserva https://openfunnel.mocca.cl. CI está integrado en main;
 el despliegue automático se configura en [CI-Y-ENTORNO.md](CI-Y-ENTORNO.md). El usuario aplazó expresamente el mantenimiento
 de Ubuntu: es un riesgo pendiente, no corregido por el aislamiento de Docker.
 
+Cloud activado el 2026-09-25 con el commit `288f6c0`, después de CI correcto y
+revisión administrativa de las migraciones 007–009. Se inicia con registro de
+cuentas y conexiones propias; la SQLite autohospedada anterior queda intacta y
+respaldada, sin asignar sus datos al primer registro. El dueño debe registrarse
+y verificar el correo definido en el entorno privado. La publicación automática
+posterior volvió a finalizar correctamente. Evidencia en
+[QA de activación cloud](../qa/PUBLICACION-CLOUD.md).
+
 ## Instalación
 
 - Fuentes y metadatos: `/srv/openfunnel-app/releases/<commit>`, con enlace `current`.

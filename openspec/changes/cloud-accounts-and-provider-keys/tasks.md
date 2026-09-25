@@ -33,6 +33,6 @@ Pagos queda fuera de este cambio hasta elegir suscripción o créditos.
 - [x] 4.3 Preparar y ensayar traslado de la instalación existente al espacio del propietario, preservando datos y colas; no habilitar cloud productivo sin correo/secretos y procedimiento verificados.
 
 - [x] 4.4 Separar entorno productivo y local, ampliar respaldo al conjunto cloud y verificar copia/recuperación con datos sintéticos.
-- [ ] 4.5 Revisar secretos, publicar main tras pruebas y activar cloud nuevo con respaldo de la base anterior; verificar HTTPS, registro disponible y proveedores sin credenciales globales. La verificación real del dueño sigue en 1.3.
+- [x] 4.5 Revisar secretos, publicar main tras pruebas y activar cloud nuevo con respaldo de la base anterior; verificar HTTPS, registro disponible y proveedores sin credenciales globales. La verificación real del dueño sigue en 1.3.
 
 Evidencia y límites: [QA microSaaS](../../../docs/qa/MICROSAAS.md). El registro del dueño y la compra real requieren pruebas externas explícitas; no sustituirlas por simulación.
