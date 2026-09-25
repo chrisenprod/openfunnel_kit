@@ -202,7 +202,7 @@ test('Persistencia y rotación: una identidad, hash y sesiones revocadas', async
   );
   assert.equal(
     c.db.prepare('SELECT count(*) n FROM schema_migrations').get().n,
-    4,
+    6,
   );
 });
 test('CRUD: validación, filtros, paginación y límites', async (t) => {
@@ -494,7 +494,7 @@ test('Agentes, prompts y tools: asociaciones ordenadas y referencias', async (t)
     ).status,
     400,
   );
-  await a.request('PATCH', `/api/prompts/${p1.id}`, { active: false });
+  await a.request('PATCH', `/api/prompts/${p1.id}`, { active: false, expected_version: p1.version });
   assert.equal(
     (
       await a.request('PATCH', `/api/ai_agents/${agent.id}`, {

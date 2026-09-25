@@ -35,7 +35,7 @@ docker compose --env-file .env.docker -p openfunnel logs --tail=100
 Las bases oficiales de Node y Nginx están fijadas por versión y digest en Dockerfile;
 al actualizarlas, verificar ambos targets y registrar la nueva versión. El lockfile
 se instala con `npm ci`. `.dockerignore` permite únicamente las fuentes necesarias,
-licencias y el CSS/símbolo compartidos con la landing. Las imágenes no contienen
+licencias, fuentes públicas de docs y recursos compartidos con la landing. Las imágenes no contienen
 las herramientas de desarrollo ni datos locales de negocio.
 
 ## Red, procesos y datos
@@ -45,7 +45,7 @@ las herramientas de desarrollo ni datos locales de negocio.
 - Ambos servicios ejecutan procesos sin root, con sistema raíz de solo lectura,
   directorios temporales acotados, sin capabilities y sin elevar privilegios.
 - SQLite vive en `/app/data/app.sqlite` dentro del volumen `openfunnel_app-data`.
-  Este incluye WAL/SHM, configuración y secreto de sesión generado por la app.
+  Este incluye WAL/SHM, documentos originales BLOB/texto, configuración y secreto de sesión generado por la app.
   El nombre depende del proyecto `-p`; usar siempre el mismo para conservar datos.
 - Mantener **una única API/worker por base**. No usar `--scale api=2`, compartir este
   volumen entre proyectos ni ejecutar otro proceso Node contra él.
@@ -118,3 +118,12 @@ no demuestran entrega de mensajes reales ni equivalen a una auditoría de produc
 Referencias oficiales: [Docker multi-stage](https://docs.docker.com/build/building/multi-stage/),
 [volúmenes](https://docs.docker.com/engine/storage/volumes/) y
 [proxy Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass).
+
+## Documentación y archivos de agentes
+
+El target web incluye `/docs/` estático, público y sin API/sesión. El builder copia
+solo fuentes enumeradas en scripts/build-docs.js; no se incluyen informes privados.
+Nginx admite cargas de hasta 5 MiB; cualquier proxy externo debe permitir el mismo
+límite (`client_max_body_size 5m`). La API conserva sus cuotas independientes.
+`test:docker` verifica DOC/DOCX/PDF, original descargado, carga superior a 1 MiB,
+persistencia tras recrear y recursos CSS/docs presentes.

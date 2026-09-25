@@ -62,7 +62,9 @@ aplicable. No se exige autorización para ejercer los derechos del código Apach
 Para publicar una aplicación derivada con identidad propia, sustituir el nombre
 visible, el favicon y el símbolo. Actualmente las referencias están en
 `frontend/index.html`, `frontend/src/main.jsx` y `landing/brand.css`; el símbolo está
-en `landing/assets/images/openfunnel-mark.webp`. El motor no depende de la imagen:
+en `landing/assets/images/openfunnel-mark.webp`. Los acentos decorativos de
+`frontend/src/style.css` usan `landing/assets/images/07-app-watercolor.webp`,
+que conserva los permisos de identidad de la landing. El motor no depende de estas imágenes:
 puede reemplazarse o eliminarse su referencia sin cambiar su funcionalidad.
 Los avisos legales de autoría y procedencia deben conservarse donde corresponda.
 

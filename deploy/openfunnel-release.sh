@@ -97,7 +97,8 @@ fi
 # Shared brand assets still trigger an app build; landing-only content does not.
 if git --git-dir="$repository" diff --quiet "$previous_sha" "$release_sha" -- \
   Dockerfile .dockerignore package.json package-lock.json .nvmrc vite.config.js \
-  backend frontend shared landing/brand.css landing/assets/images/openfunnel-mark.webp \
+  backend frontend shared scripts/build-docs.js docs/site docs/api/AGENTES.md \
+  landing/brand.css landing/assets/images/openfunnel-mark.webp landing/assets/images/07-app-watercolor.webp \
   deploy/app.nginx.conf compose.yaml compose.production.yaml; then
   health
   printf 'App inputs unchanged; existing containers kept.\n'

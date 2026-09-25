@@ -5,6 +5,9 @@ Estado: primera etapa manual implementada mediante el cambio OpenSpec
 con pruebas reales de respuestas todavía pendientes.
 Las secciones 1–9 conservan la base manual; la sección 10 define su evolución.
 La sección 11 planifica la tercera etapa de infraestructura y producción.
+La sección 12 define la cuarta etapa acordada: operación por agentes externos mediante
+API, documentos de conocimiento, versiones de prompts, pruebas aisladas y docs públicas. Implementada en
+desarrollo mediante `agent-workbench`, sin despliegue; no cierra los pendientes de verificación y operación anteriores.
 La arquitectura y la evidencia de QA describen la implementación verificada.
 
 Actualizado: 2026-09-24. Fuente: [CONCEPTO.md](CONCEPTO.md) y alcance acordado por etapas.
@@ -19,10 +22,12 @@ una interfaz minimalista y profesional basada en la identidad de la landing.
 El resultado debe poder utilizarse con registros manuales, sin contratar ni conectar
 servicios externos. La segunda etapa conecta Instagram y WhatsApp mediante Zernio
 y ejecuta agentes con una API compatible con OpenAI, usando Azure en esta instalación.
-El acceso de otras aplicaciones mediante API keys o MCP queda para una entrega posterior.
+La cuarta etapa abre operaciones autorizadas a otras aplicaciones mediante API keys
+y añade documentos del negocio, versiones de prompts, pruebas aisladas y documentación pública. MCP queda para después.
 
 La dirección de producto sigue siendo el motor conversacional de `CONCEPTO.md`.
-Este PRD delimita la base manual y el primer recorrido con mensajes reales e IA.
+Este PRD delimita la base manual, el recorrido con mensajes reales e IA, su operación
+en producción y la siguiente entrega de acceso programático y mejora de agentes.
 No es el checklist reutilizable: ese documento registra el proceso general para
 cualquier proyecto; aquí se define lo que se construirá en OpenFunnel.
 
@@ -717,9 +722,78 @@ y definir destinos de alertas. El usuario autorizó publicar después de aislar
 Docker y posponer Ubuntu, como excepción temporal al criterio 11.2.4. No marcar
 ese riesgo como resuelto ni los criterios de operación pendientes como cumplidos.
 
-## 12. Alcance posterior y decisiones pendientes
+## 12. Cuarta etapa: herramientas mínimas para operar agentes
 
-Quedan fuera de esta segunda etapa: API keys para consumidores externos, servidor MCP,
+Alcance acotado por decisión del usuario: cuatro capacidades sobre la instalación
+single user, especificadas en `agent-workbench`. Implementación y evidencia se
+registran en ese cambio; no cierra los pendientes de producción anteriores.
+
+1. **Contexto del negocio:** archivos TXT, MD, DOC, DOCX y PDF con texto, hasta 5 MiB
+   por archivo, 10 archivos y 30000 caracteres disponibles por agente. Guardar el
+   original BLOB y texto extraído en SQLite; lista visible con estado, apertura del
+   texto, descarga del original, reemplazo seguro y eliminación confirmada. Extraer
+   una vez e incluir el texto en cada llamada como referencia separada del prompt;
+   consume tokens. Sin RAG, búsqueda ni OCR. No recortar silenciosamente.
+2. **API keys, permisos y lectura:** crear/revocar claves desde la app, con nombre,
+   vencimiento, último uso y secreto mostrado una sola vez, almacenado como hash.
+   Permisos independientes de lectura de recursos, edición de prompts y pruebas.
+   La lectura permite consultar y paginar conversaciones, mensajes y configuración
+   de negocio; no expone secretos ni habilita envíos o cambios operativos.
+3. **Versiones de prompts:** historial atribuido de instrucciones y sus metadatos,
+   edición con versión de partida, rechazo de conflictos y restauración como una
+   nueva versión. UI y API comparten reglas. Mostrar agentes afectados e invalidar
+   respuestas pendientes generadas con configuración obsoleta.
+4. **Pruebas del agente:** chat temporal con continuidad/reinicio e instrucciones candidatas
+   opcionales sin aplicarlas. Usar su contexto y simular tools sin efectos externos
+   ni lectura de contactos reales. Mostrar respuesta, simulaciones, tiempo y consumo
+   disponible; advertir que llama al modelo y consume tokens. Sin guardar pruebas,
+   modificar conversaciones ni enviar por canales. Hasta 20 mensajes previos y 18000
+   caracteres; cambiar documentos, prompts o candidato obliga a reiniciar el chat.
+
+Los controles de permisos, límites, validación y control humano se aplican en backend.
+Una prueba no demuestra entrega real ni garantiza calidad futura. Se conserva el
+stack; las dependencias de extracción Word/PDF y compilación Markdown responden a
+estas necesidades. UI del agente en Instrucciones/Herramientas/Contexto/Probar; proveedor y
+modelo exclusivamente en .env, sin inputs ni overrides por agente.
+
+La **página pública de documentación forma parte de esta entrega**: sitio estático
+con instalación, entorno, operación, API, documentos, pruebas, despliegue, respaldos
+y contribución/licencias. Enlaces desde app/landing, búsqueda, móvil, teclado y enlaces
+directos. Compilable desde un clon y publicable junto a la app o independientemente,
+sin API/sesión; no copiar informes privados ni archivos de negocio.
+
+### 12.1. Criterios de aceptación
+
+- Claves revocadas, vencidas o sin permiso no acceden a la operación; la gestión
+  de claves requiere sesión y conserva protección de origen.
+- La API lee recursos paginados y permite editar/restaurar prompts solo con el
+  permiso correspondiente, sin habilitar envíos, borrados ni automatización.
+- Los originales descargados conservan exactamente sus bytes tras reiniciar. Una
+  extracción fallida queda visible; un reemplazo fallido conserva el documento anterior.
+  Quotas, revisiones y autorización se comprueban en servidor.
+- El contexto guardado se incluye en respuestas y pruebas como datos; no ejecuta
+  HTML ni amplía permisos. Los cambios participan de la revalidación antes de enviar.
+- Editar/restaurar conserva historial; dos cambios desde la misma versión no se
+  sobrescriben. La UI identifica la versión y los agentes afectados.
+- La prueba permite ensayar un candidato sin modificarlo en producción; tools
+  desconocidas y argumentos inválidos se rechazan. Tiempo, rondas y solicitudes
+  tienen límites; errores del proveedor no exponen secretos.
+- Se comprueban API/auth/datos con SQLite temporal, specs, build y UI móvil/teclado.
+  La verificación local usa datos sintéticos y no activa canales ni despliega.
+
+### 12.2. Mejoras reservadas para después
+
+Se conservan como ideas posteriores: OpenAPI,
+diagnóstico ampliado, webhooks salientes, documentos de conocimiento compartidos,
+comparación y casos de prueba guardados, y replay de conversaciones. No forman parte
+de esta entrega minimalista.
+
+## 13. Alcance posterior y decisiones pendientes
+
+API keys, versiones de prompts, pruebas y documentos de contexto pertenecen a la cuarta
+etapa acotada, junto a la documentación pública desplegable.
+Quedan para después de esa etapa: servidor MCP, procesamiento independiente por API
+sin canal —clasificar, resumir o responder a texto recibido como servicio—,
 Responses API, streaming, otros canales, comentarios y comment-to-DM, publicaciones,
 campañas, plantillas salientes, grupos, llamadas, comprensión de audio/imágenes,
 RAG, agentes por etapa, transiciones automáticas, multiusuario y multitenancy.

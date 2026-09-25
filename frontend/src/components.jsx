@@ -313,14 +313,14 @@ export function Field({ field, value, onChange, error, record, draft, version })
     </div>
   );
 }
-export function Pagination({ page, pageSize = 25, total, onPage }) {
+export function Pagination({ page = 1, pageSize = 25, total, onPage }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="pagination">
       <span className="muted" role="status">
-        {total} registros · Página {page} de {pages}
+        {total} {total === 1 ? 'registro' : 'registros'}{pages > 1 && <> · Página {page} de {pages}</>}
       </span>
-      <div>
+      {pages > 1 && <div>
         <button className="button secondary" disabled={page <= 1} onClick={() => onPage(page - 1)}>
           Anterior
         </button>
@@ -331,7 +331,7 @@ export function Pagination({ page, pageSize = 25, total, onPage }) {
         >
           Siguiente
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

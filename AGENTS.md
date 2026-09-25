@@ -38,7 +38,11 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 
 ## Integraciones
 
+- Cuarta etapa minimalista: `agent-workbench` añade API keys (scopes de lectura, prompts y pruebas), documentos de conocimiento, documentación pública y versiones/restauración de prompts. Ver `docs/api/AGENTES.md`. PATCH de prompts exige `expected_version`; no omitir el control de concurrencia. Las pruebas del agente simulan todas las tools y no escriben mensajes ni ejecutan efectos operativos. Gestión de claves solo por sesión, sin mezclar cookie y Bearer.
+
 - Zernio se traduce al modelo local en `backend/zernio.js` e `integration-store.js`; `integrations.js` coordina sincronización, webhooks y procesamiento. No exponer el JSON remoto como contrato de UI.
+- Documentos de agentes: originales BLOB y texto en SQLite (migración 006); TXT/MD UTF-8, DOC/DOCX con word-extractor y PDF con pdfjs-dist. Extraer en worker limitado, no OCR ni RAG; texto disponible en cada llamada. Provider/model legacy no son editables; usar solo entorno.
+- Docs públicas: fuentes explícitas en `docs/site/` y `docs/api/AGENTES.md`; `npm run build:docs` genera `dist/docs` y `/docs/` de app/landing. `npm run dev:docs` usa 5175. Build/dev de app y landing incluyen docs; nunca publicar todo docs ni archivos privados.
 - SDK oficial `openai` en `backend/llm.js`, Chat Completions sin streaming; entorno canónico `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`. Azure utiliza endpoint v1 y nombre de deployment. Nunca registrar secretos ni respuestas crudas de errores del proveedor.
 - Zernio usa `ZERNIO_API_KEY`; conexión/webhook requieren `PUBLIC_BASE_URL` y `ZERNIO_WEBHOOK_SECRET`. Ver `docs/deploy/INTEGRACIONES.md`. No activar canales operativos ni enviar mensajes de prueba a terceros sin autorización específica.
 - Un único backend/worker por SQLite. Cola, runs y eventos son persistidos; no reintentar envíos inciertos a ciegas. Conservar control humano y revisión antes del envío.

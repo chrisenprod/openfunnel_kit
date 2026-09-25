@@ -175,9 +175,47 @@ Las tools ejecutables son `get_contact`, `get_ticket` y `handoff_to_human`. El c
 no ejecuta código ni URLs. La cola separa generación de envío, invalida respuestas
 obsoletas y deja resultados ambiguos pendientes de revisión, sin reenvío automático.
 
-No están incluidos MCP, acceso de consumidores por API keys, RAG, campañas, comentarios,
+No están incluidos MCP, RAG, campañas, comentarios,
 plantillas, multitenancy ni microservicios. La implementación se verifica con proveedores
 simulados; el estado de pruebas reales está en [QA](qa/INTEGRACIONES.md).
+
+### Herramientas mínimas de agentes (cuarta etapa)
+
+Implementadas en desarrollo mediante `agent-workbench`, sin despliegue. Migración
+005 aditiva: `api_keys`, `prompt_versions`, `prompts.version` y
+`ai_agents.business_context` (legacy). Migración 006 convierte ese contexto en TXT y
+añade `agent_documents`: original BLOB, texto extraído, metadata, estado y revisión.
+Las claves guardan hash de un secreto aleatorio y
+permisos explícitos. `backend/api-keys.js` autentica Bearer; el servidor permite solo
+lectura, edición/restauración de prompts y pruebas según scope. Sesiones conservan
+Origin y no se mezclan con Bearer. Gestión de claves reservada al administrador.
+
+`resources.js` guarda versiones de prompts con autor dentro de la transacción y
+exige `expected_version`. `backend/agent-workbench.js` pagina/restaura versiones y
+prueba agentes con todas las tools simuladas, sin escribir mensajes ni runs operativos.
+`agentMessages` comparte instrucciones y contexto textual entre pruebas y runtime;
+los cambios entran en el hash de configuración que se revalida antes de enviar.
+No hay almacenamiento de pruebas ni nueva cola. Los límites por identidad son locales
+al proceso; una sola prueba concurrente y cancelación de la llamada al vencer 60s.
+
+`backend/documents.js` coordina carga binaria, cuotas (5 MiB/10 documentos/30000
+caracteres), revisiones y descargas autenticadas. Extracción en un worker thread
+con `word-extractor` para DOC/DOCX y `pdfjs-dist` para PDF; TXT/MD UTF-8 nativo.
+Timeout 15s y heap V8 128 MiB, una extracción simultánea. No OCR ni archivos en disco;
+reemplazo atómico tras validar y extraer, conservando el anterior ante errores.
+Una carga nueva fallida conserva original y error. Al arrancar, processing interrumpido
+pasa a error. El texto de documentos ready se incluye en cada inferencia y en configHash.
+
+El modelo proviene exclusivamente de LLM_MODEL, con endpoint/clave del entorno;
+se ignoran provider/model legacy y se rechazan como campos editables por API.
+Las pruebas aceptan historial temporal alternado user/assistant y context_hash de
+la respuesta anterior para detectar cambios; no persisten el chat.
+
+La UI incorpora Claves API, historial en Prompts y Instrucciones/Herramientas/Contexto/Probar
+dentro del agente. `scripts/build-docs.js` compila una lista explícita de Markdown
+público usando marked (dev), produce dist/docs y copias para app/landing /docs/.
+No se publican archivos privados ni todo el árbol docs; sirve sin backend o sesión.
+Contrato, límites, retención y ejemplos en [API para agentes](api/AGENTES.md).
 
 ## 5. Organización y verificación
 

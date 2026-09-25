@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHmac, randomBytes } from 'node:crypto';
-import { mkdtemp, writeFile, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readdir, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createServer } from 'node:net';
@@ -51,7 +51,7 @@ async function request(path, method = 'GET', body, headers = {}) {
   return fetch(base + path, {
     method, signal: AbortSignal.timeout(10000),
     headers: { Origin: base, 'Content-Type': 'application/json', Cookie: cookie, ...headers },
-    ...(body === undefined ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }),
+    ...(body === undefined ? {} : { body: typeof body === 'string' || body instanceof Uint8Array ? body : JSON.stringify(body) }),
   });
 }
 async function login() {
@@ -96,6 +96,8 @@ try {
   const paths = await readdir(join(exported, 'context'), { recursive: true });
   assert(!paths.some(p => /(^|\/)(\.env|\.git|\.codex|node_modules|data|backups|dist)(\/|\.|$)|\.sqlite/.test(p)), 'Private/build files excluded');
   assert(paths.includes('backend/server.js'));
+  assert(paths.includes('docs/site/index.md'));
+  assert(!paths.some(p => p.startsWith('docs/qa/') || p.startsWith('docs/deploy/') || p.startsWith('docs/referencias-visuales/')));
   assert(paths.includes('frontend/src/main.jsx'));
   assert(paths.includes('landing/assets/images/openfunnel-mark.webp'));
   for (const path of sentinels) await rm(path);
@@ -120,6 +122,13 @@ try {
   assert(html.includes('<div id="root">'));
   for (const match of html.matchAll(/(?:src|href)="(\/assets\/[^\"]+)"/g))
     assert.equal((await request(match[1])).status, 200);
+  const cssPath = [...html.matchAll(/href="(\/assets\/[^"]+\.css)"/g)][0][1];
+  const css = await (await request(cssPath)).text();
+  for (const [, url] of css.matchAll(/url\(["']?([^)'"]+)["']?\)/g)) {
+    if (url.startsWith('data:')) continue;
+    const asset = new URL(url, base + cssPath);
+    assert.equal((await request(asset.pathname)).status, 200, `CSS asset ${url}`);
+  }
   for (const path of ['/.env', '/.git/config', '/backend/server.js', '/data/app.sqlite', '/missing.js'])
     assert.equal((await request(path)).status, 404, path);
   for (const path of ['/api', '/api/no-such-route']) {
@@ -127,7 +136,28 @@ try {
     assert.match(response.headers.get('content-type'), /application\/json/);
   }
   assert.equal((await request('/api/contacts')).status, 401);
+  const docsPage = await request('/docs/');
+  assert.equal(docsPage.status, 200);
+  assert.match(await docsPage.text(), /Un motor conversacional abierto/);
+  assert.equal((await request('/docs/site.js')).status, 200);
   await login();
+  const agent = await (await request('/api/ai_agents', 'POST', { name: 'Document test' })).json();
+  let document;
+  for (const extension of ['doc', 'docx', 'pdf']) {
+    const original = await readFile(join(root, 'tests/fixtures/documents', `business.${extension}`));
+    const uploaded = await request(`/api/ai_agents/${agent.id}/documents`, 'POST', original,
+      { 'Content-Type': 'application/octet-stream', 'X-Filename': `business.${extension}` });
+    assert.equal(uploaded.status, 201);
+    document = await uploaded.json(); assert.equal(document.status, 'ready', document.error);
+    const downloaded = await request(`/api/ai_agents/${agent.id}/documents/${document.id}/download`);
+    assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), original);
+  }
+  const large = Buffer.from('Horario de atención.\n' + ' '.repeat(2 * 1024 * 1024));
+  const largeResponse = await request(`/api/ai_agents/${agent.id}/documents`, 'POST', large,
+    { 'Content-Type': 'application/octet-stream', 'X-Filename': 'larger-than-1MiB.txt' });
+  assert.equal(largeResponse.status, 201);
+  assert.equal((await largeResponse.json()).status, 'ready');
+
   assert.equal((await request('/api/contacts', 'POST', { name: 'Wrong origin' }, { Origin: 'https://invalid.example' })).status, 403);
   const created = await request('/api/contacts', 'POST', { name: 'Container persistence test' });
   assert.equal(created.status, 201);
@@ -159,6 +189,7 @@ try {
   await compose('down');
   await compose('up', '-d', '--wait', '--wait-timeout', '90');
   await health(); await login();
+  assert.equal((await request(`/api/ai_agents/${agent.id}/documents/${document.id}/download`)).status, 200);
   assert.equal((await (await request(`/api/contacts/${contact.id}`)).json()).id, contact.id);
   assert.deepEqual(JSON.parse(await sql('PRAGMA integrity_check')), [{ integrity_check: 'ok' }]);
   assert.deepEqual(JSON.parse(await sql('PRAGMA foreign_key_check')), []);

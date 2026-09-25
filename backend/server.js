@@ -6,6 +6,9 @@ import { createAuth, getAdminSession } from './auth.js';
 import { detail, list, save, remove, HttpError, publicError } from './resources.js';
 import { resources } from '../shared/resources.js';
 import { createIntegrations } from './integrations.js';
+import { createDocuments, readUpload } from './documents.js';
+import { createKeyAccess } from './api-keys.js';
+import { createAgentTester, promptVersions, restorePrompt } from './agent-workbench.js';
 
 async function readBody(req) {
   if (!req.headers['content-type']?.startsWith('application/json'))
@@ -41,6 +44,9 @@ export async function createApp({ databasePath, env = process.env, integrationOp
     throw error;
   }
   const integrations = createIntegrations(db, env, integrationOptions);
+  const keys = createKeyAccess(db);
+  const documents = createDocuments(db);
+  const testAgent = createAgentTester(db, env, integrationOptions.llmClient);
   let attempts = 0;
   let windowEnd = 0;
   const server = createServer(async (req, res) => {
@@ -89,19 +95,31 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       const integrationRoute = path.match(
         /^\/api\/(?:integrations(?:\/([a-z_-]+))?|channels\/([\w-]+)\/(automation)|conversations\/([\w-]+)\/(mode|send|sync|activity)|ai_agents\/([\w-]+)\/(validate|integration)|outbound\/([\w-]+)\/(review)|events\/([\w-]+)\/(retry))$/,
       );
+      const documentRoute = path.match(/^\/api\/ai_agents\/([\w-]+)\/documents(?:\/([\w-]+)(\/download)?)?$/);
+      const workbenchRoute = path.match(/^\/api\/(?:api-keys(?:\/([\w-]+)\/(revoke))?|prompts\/([\w-]+)\/(versions|restore)|ai_agents\/([\w-]+)\/(test))$/);
       const authPath = ['/api/login', '/api/logout', '/api/session'].includes(path);
       const match = path.match(/^\/api\/([a-z_]+)(?:\/([\w-]+))?$/);
       const known = match && Object.hasOwn(resources, match[1]);
       const validMethod =
         known && (match[2] ? ['GET', 'PATCH', 'DELETE'] : ['GET', 'POST']).includes(req.method);
-      if (!authPath && !validMethod && !integrationRoute)
+      if (!authPath && !validMethod && !integrationRoute && !workbenchRoute && !documentRoute)
         return send(res, 404, { error: 'Ruta no encontrada' });
       if (authPath && req.method !== (path === '/api/session' ? 'GET' : 'POST'))
         return send(res, 404, { error: 'Ruta no encontrada' });
-      if (req.method !== 'GET' && req.headers.origin !== state.origin)
+      const bearer = req.headers.authorization !== undefined;
+      if (!bearer && req.method !== 'GET' && req.headers.origin !== state.origin)
         throw new HttpError(403, 'Origen de solicitud no permitido.');
       if (!state.configured)
         throw new HttpError(503, 'Configura el acceso del administrador en el servidor.');
+      const apiKey = bearer ? keys.authenticate(req, res) : null;
+      if (apiKey) {
+        let scope;
+        if (req.method === 'GET' && (validMethod || documentRoute || workbenchRoute?.[4] === 'versions')) scope = 'resources:read';
+        if (req.method === 'PATCH' && validMethod && match[1] === 'prompts') scope = 'prompts:write';
+        if (req.method === 'POST' && workbenchRoute?.[4] === 'restore') scope = 'prompts:write';
+        if (req.method === 'POST' && workbenchRoute?.[6] === 'test') scope = 'agents:test';
+        if (!scope || !apiKey.scopes.includes(scope)) throw new HttpError(403, 'La clave no permite esta operación.');
+      }
       if (path === '/api/login') {
         if (Date.now() >= windowEnd) {
           attempts = 0;
@@ -134,8 +152,8 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         res.setHeader('Set-Cookie', response.headers.getSetCookie());
         return send(res, 200, { user: { name: env.admin_user } });
       }
-      const session = await getAdminSession(state, req);
-      if (!session) throw new HttpError(401, 'Inicia sesión para continuar.');
+      const session = apiKey ? null : await getAdminSession(state, req);
+      if (!apiKey && !session) throw new HttpError(401, 'Inicia sesión para continuar.');
       if (path === '/api/session')
         return send(res, 200, {
           user: { name: session.user.name },
@@ -148,6 +166,49 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         });
         res.setHeader('Set-Cookie', response.headers.getSetCookie());
         return send(res, 200, { ok: true });
+      }
+      const actor = apiKey ? `api_key:${apiKey.id}` : 'admin';
+      if (documentRoute) {
+        const [, agentId, documentId, download] = documentRoute;
+        if (req.method === 'GET') {
+          if (download) {
+            const row = documents.get(agentId, documentId, true);
+            res.writeHead(200, {
+              'Content-Type': 'application/octet-stream',
+              'Content-Disposition': `attachment; filename="document.${row.filename.split('.').pop().toLowerCase()}"; filename*=UTF-8''${encodeURIComponent(row.filename).replace(/'/g, '%27')}`,
+              'Content-Length': row.size, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+            });
+            return res.end(Buffer.from(row.original));
+          }
+          return send(res, 200, documentId ? documents.get(agentId, documentId) : documents.list(agentId));
+        }
+        if (!download && req.method === 'DELETE' && documentId)
+          return send(res, 200, documents.remove(agentId, documentId, req.headers['if-match']));
+        if (!download && (req.method === 'POST' && !documentId || req.method === 'PUT' && documentId)) {
+          const input = await readUpload(req);
+          return send(res, documentId ? 200 : 201, await documents.upload(agentId, input, documentId, req.headers['if-match']));
+        }
+        throw new HttpError(404, 'Ruta no encontrada.');
+      }
+      if (workbenchRoute) {
+        const [, keyId, keyAction, promptId, promptAction, agentId, agentAction] = workbenchRoute;
+        if (req.method === 'GET' && path === '/api/api-keys') return send(res, 200, keys.list());
+        if (req.method === 'GET' && promptAction === 'versions')
+          return send(res, 200, promptVersions(db, promptId, url.searchParams));
+        if (req.method !== 'POST') throw new HttpError(404, 'Ruta no encontrada.');
+        const body = await readBody(req);
+        if (path === '/api/api-keys') return send(res, 201, keys.create(body));
+        if (keyAction === 'revoke') return send(res, 200, keys.revoke(keyId));
+        if (promptAction === 'restore') return send(res, 200, restorePrompt(db, promptId, body, actor));
+        if (agentAction === 'test') {
+          keys.limit(`test:${actor}`, 5, res);
+          const controller = new AbortController();
+          const abort = () => controller.abort();
+          res.on('close', abort);
+          try { return send(res, 200, await testAgent(agentId, body, controller.signal)); }
+          finally { res.off('close', abort); }
+        }
+        throw new HttpError(404, 'Ruta no encontrada.');
       }
       if (integrationRoute) {
         const [
@@ -200,7 +261,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         remove(db, table, id);
         return send(res, 200, { ok: true });
       }
-      return send(res, id ? 200 : 201, save(db, table, await readBody(req), id));
+      return send(res, id ? 200 : 201, save(db, table, await readBody(req), id, actor));
     } catch (error) {
       const problem = publicError(error);
       if (!res.headersSent)

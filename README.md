@@ -14,7 +14,8 @@ administrador, esquema de datos y CRUD de los módulos base, con tickets y pipel
 La segunda etapa implementa canales Zernio (Instagram/WhatsApp), mensajería y agentes
 con SDK OpenAI sobre endpoint configurable, con Azure como proveedor de esta instalación.
 Configuración y límites en [la guía de integraciones](docs/deploy/INTEGRACIONES.md).
-API keys para consumidores externos y MCP siguen pendientes. La verificación real
+La cuarta etapa añade [API keys, contexto, versiones de prompts y pruebas aisladas](docs/api/AGENTES.md)
+en la rama de desarrollo; no está desplegada en producción. MCP sigue pendiente. La verificación real
 completa de respuestas se registra separadamente de las pruebas simuladas.
 
 La tercera etapa del PRD cubre infraestructura y producción. La app tiene un
@@ -64,6 +65,22 @@ abierto no concede la identidad para vender un producto propio ni acceso al clou
 oficial. Apache-2.0 sí permite ofrecer otros servicios basados en el código.
 La disponibilidad jurídica del nombre «OpenFunnel» sigue pendiente de revisión.
 
+## Documentación pública
+
+La app incluye una [web de documentación](docs/site/index.md) en `/docs/`, sin login:
+instalación, entorno, operación, archivos, pruebas, API, despliegue y contribuciones.
+En desarrollo: http://localhost:5173/docs/; independiente: `npm run dev:docs` (5175).
+`npm run build:docs` genera `dist/docs/` para cualquier hosting estático, raíz o
+subruta. Los builds de app y landing la incluyen automáticamente. Fuentes públicas
+en `docs/site/` y `docs/api/AGENTES.md`, con lista de publicación explícita.
+
+Los agentes ahora tienen **Configuración / Conocimiento / Probar**. Conocimiento
+admite TXT, MD, DOC, DOCX y PDF con texto (5 MiB/archivo, 10 archivos, 30000 caracteres).
+Original BLOB y texto permanecen en SQLite; se pueden abrir, descargar, reemplazar y
+eliminar. El texto se extrae una vez y se incluye en cada llamada, sin RAG/OCR.
+La prueba mantiene chat temporal y simula herramientas. Modelo y proveedor se
+configuran únicamente en `.env`, sin campos editables por agente.
+
 ## Stack
 
 - Frontend: React + Vite, JavaScript y CSS.
@@ -71,6 +88,7 @@ La disponibilidad jurídica del nombre «OpenFunnel» sigue pendiente de revisi�
 - Base de datos: SQLite con `node:sqlite`, sin ORM.
 - Better Auth 1.7.5 para el administrador y sus sesiones, sobre SQLite nativo.
 - SDK oficial `openai` para Chat Completions y tools; Zernio mediante fetch nativo.
+- Extracción Word/PDF con `word-extractor` y `pdfjs-dist`; `marked` solo para compilar documentación.
 - Un único `package.json`, npm y módulos ES.
 
 Requiere Node.js 24.13 o superior. `.nvmrc` selecciona la rama 24. En Node 24.13, `node:sqlite` emite una advertencia experimental; el módulo funciona sin flags adicionales.

@@ -15,10 +15,14 @@ FROM node-base AS frontend-build
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY vite.config.js ./
+COPY scripts/build-docs.js ./scripts/build-docs.js
+COPY docs/site ./docs/site
+COPY docs/api/AGENTES.md ./docs/api/AGENTES.md
 COPY frontend ./frontend
 COPY shared ./shared
 COPY landing/brand.css ./landing/brand.css
 COPY landing/assets/images/openfunnel-mark.webp ./landing/assets/images/openfunnel-mark.webp
+COPY landing/assets/images/07-app-watercolor.webp ./landing/assets/images/07-app-watercolor.webp
 RUN npm run build
 
 # API runtime: Node serves /api and runs the integration worker.

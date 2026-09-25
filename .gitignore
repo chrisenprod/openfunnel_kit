@@ -25,3 +25,8 @@ backend/data/
 
 # Private infrastructure audit evidence
 /docs/qa/private/
+
+# Generated public documentation
+/dist/docs/
+/frontend/public/docs/
+/landing/public/docs/

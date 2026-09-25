@@ -136,6 +136,9 @@ test('forced SSH command rejects shell, scp and command injection', () => {
   assert.equal(calls.some(call => call[0] === 'docker' || call[0] === 'systemctl'), false);
   const diff = calls.find(call => call[0] === 'git' && call.includes('diff'));
   assert.ok(diff.includes('landing/brand.css'));
+  assert.ok(diff.includes('docs/site'));
+  assert.ok(diff.includes('docs/api/AGENTES.md'));
+  assert.ok(diff.includes('scripts/build-docs.js'));
   assert.ok(diff.includes('landing/assets/images/openfunnel-mark.webp'));
   assert.equal(diff.includes('landing'), false);
 });
