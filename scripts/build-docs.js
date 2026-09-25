@@ -6,12 +6,16 @@ const pages = [
   ['index', 'Introducción', 'docs/site/index.md'],
   ['instalacion', 'Instalación', 'docs/site/instalacion.md'],
   ['configuracion', 'Configuración', 'docs/site/configuracion.md'],
+  ['cuentas', 'Cuentas y conexiones', 'docs/site/cuentas.md'],
+  ['facturacion', 'Facturación y créditos', 'docs/site/facturacion.md'],
   ['uso', 'Usar la app', 'docs/site/uso.md'],
   ['conocimiento', 'Conocimiento', 'docs/site/conocimiento.md'],
   ['pruebas', 'Probar agentes', 'docs/site/pruebas.md'],
   ['api', 'API para agentes', 'docs/api/AGENTES.md'],
   ['despliegue', 'Despliegue y respaldos', 'docs/site/despliegue.md'],
   ['contribuir', 'Contribuir', 'docs/site/contribuir.md'],
+  ['terminos', 'Términos de servicio', 'docs/site/terminos.md'],
+  ['privacidad', 'Política de privacidad', 'docs/site/privacidad.md'],
 ];
 const escape = (text) => text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const output = 'dist/docs';

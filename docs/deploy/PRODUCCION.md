@@ -11,7 +11,8 @@ de Ubuntu: es un riesgo pendiente, no corregido por el aislamiento de Docker.
   El archivo `RELEASE` identifica el commit usado para etiquetar ambas imágenes.
   El antiguo checkout de la landing no se sobrescribe.
 - Entorno: `/etc/openfunnel/app.env`, root:root 0600 dentro de directorio 0700.
-  Orígenes HTTPS de producción, Luna por defecto y secreto de sesión independiente.
+  Orígenes HTTPS de producción y secretos independientes del desarrollo. En cloud,
+  dueño/Resend/Polar son de servidor; Zernio y modelos se configuran por espacio.
 - Compose: `compose.yaml` + `compose.production.yaml`, proyecto `openfunnel`.
 - Red externa `openfunnel`, bridge `br-openfunnel`, IPv6 deshabilitado.
 - Volumen externo `openfunnel_app-data`, preservado incluso al retirar Compose.
@@ -76,10 +77,15 @@ requiere mensajes de una cuenta de prueba autorizada y evidencia independiente.
 ## Respaldos y recuperación
 
 `openfunnel-backup.timer` ejecuta una copia diaria a las 03:20 UTC, con hasta diez
-minutos de dispersión. El script usa SQLite online backup, verifica integridad y
-FK, impide ejecuciones simultáneas y guarda archivos 0600 bajo
-`/var/backups/openfunnel` (0700), con retención de siete días. La copia previa al
-corte permanece separada en `migration/`.
+minutos de dispersión. En self-hosted usa SQLite online backup. En cloud detiene
+brevemente la única API, copia el volumen completo y la reinicia; después verifica
+integridad y FK de todas las SQLite de la copia, sin red, y genera un archivo tar.gz.
+Si falla la copia, intenta reiniciar la API antes de salir con error. Impide
+ejecuciones simultáneas y guarda archivos 0600 bajo `/var/backups/openfunnel` (0700),
+eliminando copias operativas con más de siete días completos de antigüedad.
+Las copias puntuales previas a una transición se conservan separadas en `migration/`.
+El entorno y la clave maestra se respaldan por separado: sin ellos no se pueden
+recuperar las conexiones cifradas.
 
 ```sh
 systemctl start openfunnel-backup.service

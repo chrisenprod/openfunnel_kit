@@ -57,3 +57,11 @@ docs/**
 !docs/site/site.js
 !docs/api/
 !docs/api/AGENTES.md
+
+# Provider logos imported by the cloud connection UI.
+!frontend/src/assets/
+frontend/src/assets/**
+!frontend/src/assets/zernio/
+frontend/src/assets/zernio/**
+!frontend/src/assets/zernio/logo-dark.svg
+!frontend/src/assets/zernio/logo-white.svg

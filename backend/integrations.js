@@ -238,7 +238,7 @@ export function createIntegrations(db, env, options = {}) {
     if (body.platform === 'whatsapp' && !['api', 'business_app'].includes(body.onboarding))
       throw new HttpError(400, 'Elige Cloud API o coexistencia.');
     const nonce = randomBytes(32).toString('hex');
-    const redirect = `${publicBase()}/api/integrations/zernio/callback?attempt=${nonce}`;
+    const redirect = `${publicBase()}${env.WORKSPACE_PATH || '/api'}/integrations/zernio/callback?attempt=${nonce}`;
     const d = await zernio(`/connect/${body.platform}`, {
       query: {
         profileId: body.profile_id,
@@ -319,7 +319,7 @@ export function createIntegrations(db, env, options = {}) {
   async function registerWebhook() {
     if (!env.ZERNIO_WEBHOOK_SECRET || env.ZERNIO_WEBHOOK_SECRET.length < 32)
       throw new HttpError(503, 'Configura ZERNIO_WEBHOOK_SECRET con al menos 32 caracteres.');
-    const url = `${publicBase()}/api/integrations/zernio/webhook`;
+    const url = `${publicBase()}${env.WORKSPACE_PATH || '/api'}/integrations/zernio/webhook`;
     const d = await zernio('/webhooks/settings');
     contract(Array.isArray(d.webhooks));
     const old =
@@ -588,6 +588,7 @@ export function createIntegrations(db, env, options = {}) {
     return s.get('outbound_messages', requestId);
   }
   async function deliver(job) {
+    if (stopped || (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE())) return;
     const c = requireRecord('conversations', job.conversation_id);
     const message = requireRecord('messages', job.message_id);
     try {
@@ -743,7 +744,7 @@ export function createIntegrations(db, env, options = {}) {
           throw new HttpError(409, 'La conversación cambió durante la generación.');
         if (Date.now() - started > 60000)
           throw new HttpError(409, 'Se alcanzó el tiempo máximo de ejecución.');
-        const result = await llm.complete(model, messages, names.map(functionTool));
+        const result = await llm.complete(model, messages, names.map(functionTool), {}, {}, {key:`run:${run.id}:llm:${round}`,source:'agent'});
         if (result.usage) for (const k of Object.keys(usage)) usage[k] += result.usage[k] || 0;
         db.prepare('UPDATE agent_runs SET usage=?,updated_at=? WHERE id=?').run(
           JSON.stringify(usage),
@@ -797,6 +798,7 @@ export function createIntegrations(db, env, options = {}) {
           }
           if (!stillCurrent())
             throw new HttpError(409, 'La conversación cambió durante las herramientas.');
+          const executeTool = () => {
           let output;
           if (name === 'get_contact') {
             const contact = s.get('contacts', c.contact_id);
@@ -831,6 +833,9 @@ export function createIntegrations(db, env, options = {}) {
             );
             if (name === 'handoff_to_human') s.pause(c.id, args.reason);
           });
+          return serialized;
+          };
+          const serialized = env.BILLING_METER ? env.BILLING_METER.runSync('tool',`run:${run.id}:tool:${round}:${count}`, 'agent', executeTool) : executeTool();
           if (name === 'handoff_to_human') {
             db.prepare("UPDATE agent_runs SET status='handed_off',updated_at=? WHERE id=?").run(
               now(),
@@ -996,7 +1001,7 @@ export function createIntegrations(db, env, options = {}) {
     };
   }
   async function tick() {
-    if (stopped || working) return;
+    if (stopped || working || (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE())) return;
     working = true;
     try {
       if (Date.now() >= nextSweep && env.ZERNIO_API_KEY) {
@@ -1080,6 +1085,8 @@ export function createIntegrations(db, env, options = {}) {
     }
   }
   function start() {
+    if (timer && !stopped) return;
+    stopped = false;
     db.exec(
       "UPDATE agent_runs SET status='pending' WHERE status='running'; UPDATE outbound_messages SET status='uncertain' WHERE status='sending'; UPDATE messages SET delivery_status='uncertain' WHERE id IN (SELECT message_id FROM outbound_messages WHERE status='uncertain');",
     );

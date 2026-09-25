@@ -105,7 +105,7 @@ export const resources = {
     label: 'Canales',
     singular: 'canal',
     group: 'Configuración',
-    note: 'Conecta Instagram y WhatsApp o conserva canales manuales.',
+    note: 'Gestiona tus canales de Instagram y WhatsApp.',
     title: 'name',
     search: ['name', 'kind'],
     filters: ['kind', 'active'],

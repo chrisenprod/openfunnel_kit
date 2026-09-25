@@ -4,7 +4,9 @@ frontend/dist/
 /.vercel/
 backend/data/
 .env
+.env.backup
 .env.*
+.env *
 !.env.example
 !.env.docker.example
 *.sqlite

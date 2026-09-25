@@ -9,8 +9,9 @@ import { createIntegrations } from './integrations.js';
 import { createDocuments, readUpload } from './documents.js';
 import { createKeyAccess } from './api-keys.js';
 import { createAgentTester, promptVersions, restorePrompt } from './agent-workbench.js';
+import { createProviderConnections } from './provider-connections.js';
 
-async function readBody(req) {
+export async function readBody(req) {
   if (!req.headers['content-type']?.startsWith('application/json'))
     throw new HttpError(415, 'Se requiere application/json.');
   let bytes = 0;
@@ -26,7 +27,7 @@ async function readBody(req) {
     throw new HttpError(400, 'JSON inválido.');
   }
 }
-function send(res, status, data) {
+export function send(res, status, data) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -34,15 +35,24 @@ function send(res, status, data) {
   });
   res.end(JSON.stringify(data));
 }
-export async function createApp({ databasePath, env = process.env, integrationOptions = {} } = {}) {
+export async function createApp({ databasePath, env = process.env, integrationOptions = {}, tenant } = {}) {
+  if (env.APP_MODE && !['self-hosted','cloud'].includes(env.APP_MODE)) throw new Error('APP_MODE debe ser self-hosted o cloud.');
+  if (env.APP_MODE === 'cloud' && !tenant) {
+    const { createCloudApp } = await import('./cloud-server.js');
+    return createCloudApp({ databasePath, env, integrationOptions, createWorkspace: createApp, readBody, send });
+  }
   const db = openDatabase(databasePath);
   let state;
+  let connections;
   try {
-    state = await createAuth(db, env);
+    state = tenant ? { configured: true, origin: new URL(env.APP_ORIGIN).origin } : await createAuth(db, env);
+    connections = createProviderConnections(db, env, tenant?.id);
   } catch (error) {
     db.close();
     throw error;
   }
+  env = connections.env;
+  const sessionFor = tenant ? tenant.session : req => getAdminSession(state, req);
   const integrations = createIntegrations(db, env, integrationOptions);
   const keys = createKeyAccess(db);
   const documents = createDocuments(db);
@@ -53,6 +63,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
     try {
       const url = new URL(req.url, state.origin);
       const path = url.pathname;
+      if (req.method === 'GET' && path === '/api/public-config') return send(res, 200, { mode: 'self-hosted' });
       if (req.method === 'GET' && path === '/api/health') {
         try {
           return send(res, 200, {
@@ -79,7 +90,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       if (req.method === 'GET' && path === '/api/integrations/zernio/callback') {
         let destination = '/channels?connection=failed';
         try {
-          const session = await getAdminSession(state, req);
+          const session = await sessionFor(req);
           if (session)
             destination = `/channels/${await integrations.callback(url.searchParams, session.session.id)}`;
         } catch {
@@ -98,11 +109,12 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       const documentRoute = path.match(/^\/api\/ai_agents\/([\w-]+)\/documents(?:\/([\w-]+)(\/download)?)?$/);
       const workbenchRoute = path.match(/^\/api\/(?:api-keys(?:\/([\w-]+)\/(revoke))?|prompts\/([\w-]+)\/(versions|restore)|ai_agents\/([\w-]+)\/(test))$/);
       const authPath = ['/api/login', '/api/logout', '/api/session'].includes(path);
+      const providerRoute = path.match(/^\/api\/connections\/(zernio|llm)$/);
       const match = path.match(/^\/api\/([a-z_]+)(?:\/([\w-]+))?$/);
       const known = match && Object.hasOwn(resources, match[1]);
       const validMethod =
         known && (match[2] ? ['GET', 'PATCH', 'DELETE'] : ['GET', 'POST']).includes(req.method);
-      if (!authPath && !validMethod && !integrationRoute && !workbenchRoute && !documentRoute)
+      if (!authPath && !validMethod && !integrationRoute && !workbenchRoute && !documentRoute && !providerRoute)
         return send(res, 404, { error: 'Ruta no encontrada' });
       if (authPath && req.method !== (path === '/api/session' ? 'GET' : 'POST'))
         return send(res, 404, { error: 'Ruta no encontrada' });
@@ -152,7 +164,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         res.setHeader('Set-Cookie', response.headers.getSetCookie());
         return send(res, 200, { user: { name: env.admin_user } });
       }
-      const session = apiKey ? null : await getAdminSession(state, req);
+      const session = apiKey ? null : await sessionFor(req);
       if (!apiKey && !session) throw new HttpError(401, 'Inicia sesión para continuar.');
       if (path === '/api/session')
         return send(res, 200, {
@@ -167,7 +179,13 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         res.setHeader('Set-Cookie', response.headers.getSetCookie());
         return send(res, 200, { ok: true });
       }
-      const actor = apiKey ? `api_key:${apiKey.id}` : 'admin';
+      const actor = apiKey ? `api_key:${apiKey.id}` : tenant ? `user:${session.user.id}` : 'admin';
+      if (providerRoute) {
+        if (req.method === 'GET') return send(res, 200, connections.metadata(providerRoute[1]));
+        if (req.method === 'PUT') return send(res, 200, connections.save(providerRoute[1], await readBody(req)));
+        if (req.method === 'DELETE') return send(res, 200, connections.remove(providerRoute[1], await readBody(req)));
+        throw new HttpError(404, 'Ruta no encontrada.');
+      }
       if (documentRoute) {
         const [, agentId, documentId, download] = documentRoute;
         if (req.method === 'GET') {
@@ -274,7 +292,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
   });
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;
-  return { server, db, integrations, configured: state.configured };
+  return { server, db, integrations, connections, configured: state.configured };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { server, db, integrations, configured } = await createApp();

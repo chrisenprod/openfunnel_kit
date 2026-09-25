@@ -5,12 +5,15 @@ Estado: primera etapa manual implementada mediante el cambio OpenSpec
 con pruebas reales de respuestas todavía pendientes.
 Las secciones 1–9 conservan la base manual; la sección 10 define su evolución.
 La sección 11 planifica la tercera etapa de infraestructura y producción.
-La sección 12 define la cuarta etapa acordada: operación por agentes externos mediante
+La sección 12 recoge la preparación para operar agentes externos mediante
 API, documentos de conocimiento, versiones de prompts, pruebas aisladas y docs públicas. Implementada en
 desarrollo mediante `agent-workbench`, sin despliegue; no cierra los pendientes de verificación y operación anteriores.
 La arquitectura y la evidencia de QA describen la implementación verificada.
+La sección 14 define la cuarta etapa, microSaaS, todavía en implementación: cuentas con
+Better Auth, verificación mediante Resend y conexiones con claves propias desde
+la interfaz. El modelo de cobro queda pendiente entre suscripción y créditos.
 
-Actualizado: 2026-09-24. Fuente: [CONCEPTO.md](CONCEPTO.md) y alcance acordado por etapas.
+Actualizado: 2026-09-25. Fuente: [CONCEPTO.md](CONCEPTO.md) y alcance acordado por etapas.
 
 ## 1. Objetivo
 
@@ -22,7 +25,7 @@ una interfaz minimalista y profesional basada en la identidad de la landing.
 El resultado debe poder utilizarse con registros manuales, sin contratar ni conectar
 servicios externos. La segunda etapa conecta Instagram y WhatsApp mediante Zernio
 y ejecuta agentes con una API compatible con OpenAI, usando Azure en esta instalación.
-La cuarta etapa abre operaciones autorizadas a otras aplicaciones mediante API keys
+La preparación de agentes abre operaciones autorizadas a otras aplicaciones mediante API keys
 y añade documentos del negocio, versiones de prompts, pruebas aisladas y documentación pública. MCP queda para después.
 
 La dirección de producto sigue siendo el motor conversacional de `CONCEPTO.md`.
@@ -722,7 +725,7 @@ y definir destinos de alertas. El usuario autorizó publicar después de aislar
 Docker y posponer Ubuntu, como excepción temporal al criterio 11.2.4. No marcar
 ese riesgo como resuelto ni los criterios de operación pendientes como cumplidos.
 
-## 12. Cuarta etapa: herramientas mínimas para operar agentes
+## 12. Preparación del microSaaS: herramientas mínimas para operar agentes
 
 Alcance acotado por decisión del usuario: cuatro capacidades sobre la instalación
 single user, especificadas en `agent-workbench`. Implementación y evidencia se
@@ -790,20 +793,176 @@ de esta entrega minimalista.
 
 ## 13. Alcance posterior y decisiones pendientes
 
-API keys, versiones de prompts, pruebas y documentos de contexto pertenecen a la cuarta
-etapa acotada, junto a la documentación pública desplegable.
-Quedan para después de esa etapa: servidor MCP, procesamiento independiente por API
+API keys, versiones de prompts, pruebas y documentos de contexto pertenecen a la
+preparación de agentes, junto a la documentación pública desplegable.
+Quedan para después: servidor MCP, procesamiento independiente por API
 sin canal —clasificar, resumir o responder a texto recibido como servicio—,
 Responses API, streaming, otros canales, comentarios y comment-to-DM, publicaciones,
 campañas, plantillas salientes, grupos, llamadas, comprensión de audio/imágenes,
-RAG, agentes por etapa, transiciones automáticas, multiusuario y multitenancy.
+RAG, agentes por etapa y transiciones automáticas. Las cuentas independientes y
+su aislamiento pasan al alcance de la sección 14; equipos e invitaciones siguen pendientes.
 La medición básica de uso del modelo sirve para diagnóstico, no constituye facturación.
 
-Se conserva el login single user, el directorio interno sin acceso y el vínculo
-opcional uno a uno entre conversación y ticket. No se añaden deals.
+El login single user se conserva en el modo autohospedado actual; la sección 14
+añade un modo explícito de registro por cuenta. El directorio interno sigue sin
+conceder acceso y se conserva el vínculo opcional uno a uno entre conversación y
+ticket. No se añaden deals.
 
 Al especificar la integración se confirmarán el recurso/deployment Azure y su soporte
 de Chat Completions/tools, los permisos y capacidades de la cuenta Zernio, los perfiles
 a sincronizar y la URL pública para callbacks/webhooks. La documentación de proveedores
 se revisó el 2026-09-23; no se verificaron credenciales ni cuentas reales durante la
 redacción. Los contratos deberán contrastarse de nuevo al implementar.
+
+## 14. Cuarta etapa: microSaaS con cuentas y conexiones propias
+
+Estado: implementación local y verificación en
+[`cloud-accounts-and-provider-keys`](../openspec/changes/cloud-accounts-and-provider-keys/proposal.md).
+Cuentas, conexiones y aislamiento implementados y probados con datos sintéticos;
+pendientes la verificación real del dueño y la activación productiva.
+Ver [QA microSaaS](qa/MICROSAAS.md). El registro público todavía no está habilitado en producción.
+La decisión de cobro no bloquea las cuentas ni las conexiones. El
+[checklist microSaaS](checklists/CHECKLIST-MICROSAAS.md) es una plantilla reutilizable
+para el curso y otras aplicaciones: primero correos con Resend, después usuarios y
+superadmin, luego multitenancy y API keys, y finalmente pagos. El seguimiento de
+esta implementación se conserva en las tareas de OpenSpec y el registro de QA
+enlazados arriba.
+
+### 14.1. Resultado y alcance abierto
+
+Una persona crea su cuenta, verifica su correo y conecta sus proveedores desde
+OpenFunnel. Tiene un espacio propio, sin acceso a datos ni credenciales de otras
+cuentas. Una conexión Zernio sirve a sus canales y una conexión LLM a sus agentes;
+no se repiten claves en cada ficha.
+
+Estas capacidades forman parte del núcleo abierto bajo Apache-2.0. Cualquiera
+que despliegue el proyecto puede habilitarlas y configurar al **dueño de su
+instancia**, no solo quien opera el cloud oficial. No hay un correo propietario
+codificado ni un superadmin global compartido entre instalaciones.
+
+- `APP_MODE=self-hosted` conserva el acceso actual mediante `admin_user` y
+  `admin_pass`, sin registro público. Sigue siendo el valor predeterminado.
+- `APP_MODE=cloud` habilita cuentas independientes con Better Auth y sustituye
+  esas credenciales compartidas. También está disponible al desplegar el código
+  abierto; el nombre del modo no exige contratar el cloud oficial.
+- Un espacio por cuenta en esta etapa. Sin equipos, invitaciones, selector de
+  organizaciones ni permisos personalizados.
+
+### 14.2. Registro, correo y dueño de la instancia
+
+- **Better Auth:** registro con nombre, correo y contraseña, inicio/cierre de
+  sesión y recuperación de contraseña. El CRUD «Usuarios» continúa como
+  directorio del negocio; crear una persona allí no crea una cuenta de acceso.
+- **Contraseña:** permitir mostrar/ocultar; en registro y restablecimiento, indicar
+  «Mínimo 12 caracteres» en rojo o verde según se cumpla, con icono y texto accesible.
+  Conservar máximo de 128 caracteres.
+- **Resend:** enviar verificación y recuperación desde backend, con
+  `RESEND_API_KEY` y `RESEND_FROM` configurados por quien despliega. El cloud
+  oficial utilizará `OpenFunnel <noreply@openfunnel.mocca.cl>`; otras instalaciones
+  usarán su propio remitente verificado.
+- **Verificación obligatoria:** antes de acceder al espacio o conectar
+  proveedores. Mostrar «Revisa tu correo», reenviar con espera y permitir volver
+  al acceso. Enlaces temporales de un solo uso, límites de registro/reenvío/login
+  y recuperación sin revelar si una cuenta existe. Verificar email reduce abuso;
+  no garantiza que una cuenta pertenezca a una persona y no sustituye los límites.
+- **Propietario configurable:** `CLOUD_OWNER_EMAIL=owner@example.com` reserva el
+  rol `superadmin` para ese correo. Se concede desde backend cuando su cuenta
+  esté verificada; nunca por ser la primera cuenta ni por un campo del formulario.
+  La variable no crea una cuenta ni contiene su contraseña. El correo real de
+  cada instalación se guarda en su entorno privado.
+- **Administración mínima:** el dueño puede listar cuentas y suspender/reactivar
+  clientes. No puede suspenderse a sí mismo. El panel no concede acceso implícito
+  a conversaciones ni revela claves de clientes. La suspensión bloquea sesiones,
+  API keys y nuevo trabajo del agente, y deja constancia del cambio.
+
+### 14.3. Proveedores desde la interfaz
+
+| Lugar | Datos de conexión | Experiencia |
+|---|---|---|
+| Canales → Conectar Zernio | API key de Zernio | Configurar una vez para el espacio; mostrar estado y permitir reemplazarla. |
+| Agentes → Conectar IA | `LLM_BASE_URL`, `LLM_API_KEY` y modelo/deployment cuando falte | Formulario bajo demanda de la conexión compartida; sin inputs de proveedor/modelo en cada agente. |
+
+En modo autohospedado, los valores definidos en `.env` tienen prioridad: no se
+piden de nuevo ni se sobrescriben desde la interfaz. Si falta algún campo, se pide
+solo ese dato. En cloud con cuentas independientes, cada espacio aporta sus propias
+claves; nunca hereda las cuentas Zernio o LLM globales del operador.
+
+Las claves se envían al backend por HTTPS y se guardan cifradas en SQLite, con
+una clave maestra de servidor externa a la base. No se devuelven al navegador ni
+se guardan en localStorage, logs o variables `VITE_*`. La interfaz muestra estado
+y procedencia; reemplazar una clave exige introducir el nuevo valor.
+
+Agentes presenta «Configurar proveedor de IA» con iconos y enlaces a OpenAI Platform
+y OpenRouter. Sus URLs se pueden completar desde accesos rápidos; Otro / Azure
+permite un destino personalizado. El modelo sigue siendo editable, sin catálogo fijo.
+
+Canales presenta «Configurar canales con Zernio», logo oficial y enlace a zernio.com.
+Sin conexión, «Configurar Zernio» es la acción principal; después lo es «Conectar canal».
+La interfaz ya no ofrece crear canales manualmente; conserva los existentes.
+
+Guardar no activa canales, envía mensajes ni ejecuta llamadas de pago. La prueba
+de conexión es una acción explícita. Una URL LLM debe corresponder a un destino
+HTTPS autorizado; bloquear destinos internos y redirecciones que expongan claves.
+Los cambios invalidan verificaciones y respuestas pendientes de la conexión anterior.
+
+### 14.4. Suscripciones con créditos y Polar
+
+Cambio: `polar-admin-portal`. Facturación opcional en cloud, disponible en el núcleo
+abierto. Cada operador usa su cuenta Polar, productos, precios y límites. El modo
+self-hosted conserva uso sin suscripción. Zernio y LLM los paga cada cliente directamente.
+
+- Dos productos del cloud oficial: Starter US$25/mes, 20.000 créditos; Pro US$50/mes,
+  créditos configurables por el dueño (cantidad comercial pendiente de confirmar).
+  Precios más impuestos aplicables, sin prueba gratuita. La app consulta los precios
+  de Polar; no codifica estas tarifas ni IDs de producto.
+- 1 llamada al modelo = 1 crédito; 1 herramienta ejecutada = 1 crédito. Incluye
+  pruebas y validación de conexión (dos llamadas y una herramienta simulada).
+  Una conversación no es la unidad facturada: 2.000 conversaciones por 20.000 créditos
+  es solo una estimación si cada conversación utiliza diez créditos.
+- Reservar antes de ejecutar; confirmar al éxito; devolver si esa operación falla.
+  No duplicar cargos por reintentos técnicos. Llamadas exitosas anteriores a un fallo
+  posterior conservan su consumo. Las reservas de procesos interrumpidos se liberan.
+- Períodos mensuales pagados, sin acumulación, sin sobreconsumo ni recarga automática.
+  El saldo agotado bloquea nuevas llamadas/tools, no la lectura ni gestión manual.
+  Las conversaciones pausadas por saldo se retoman explícitamente tras renovar.
+- Agentes, contactos y canales sin cuotas comerciales. Se conservan límites técnicos.
+- Superadmin: sincronizar catálogo, publicar productos con créditos, revisar cuentas,
+  consumo y eventos fallidos. Cliente: saldo, planes, checkout, historial y portal Polar.
+- Checkout vinculado al espacio autenticado. La redirección no activa saldo. Webhooks
+  firmados, persistidos y deduplicados confirman pagos y renovaciones. Cancelación
+  programada conserva el período pagado; revocación y reembolso total bloquean ese saldo.
+  Reembolso parcial conserva créditos. Sin cambios de plan con prorrateo en esta entrega:
+  desactivar cambios de producto y múltiples suscripciones en el portal Polar.
+- Entorno `BILLING_ENABLED` explícito; token y secreto solo backend, catálogo y saldos
+  separados por sandbox/production. Ver [guía pública](site/facturacion.md).
+
+La implementación se prueba con datos sintéticos. Habilitar el webhook público y
+ensayar el pago sandbox son verificaciones externas: no equivalen a una compra real
+por ejecutar los tests ni a que el backend local sea accesible desde Polar.
+
+### 14.5. Criterios de aceptación y orden de entrega
+
+1. Una cuenta nueva recibe verificación por Resend, no accede antes de verificar
+   y puede iniciar sesión y recuperar su contraseña. Los enlaces vencidos o usados
+   se rechazan y los reenvíos están limitados.
+2. Solo el correo propietario configurado y verificado obtiene `superadmin`.
+   Registrar `role=superadmin` o modificar el directorio no otorga privilegios.
+3. Dos cuentas no pueden cruzar recursos, relaciones, documentos, API keys,
+   pruebas, callbacks, webhooks ni trabajo en segundo plano, incluso con IDs conocidos.
+4. Las conexiones se conservan cifradas tras reiniciar; no se muestran secretos
+   guardados. Los campos de entorno completos no se solicitan en self-hosted.
+5. Suspender una cuenta impide nuevos accesos y efectos pendientes. Rotar claves
+   durante una ejecución no permite enviar respuestas con configuración obsoleta;
+   las entregas inciertas no se reintentan a ciegas.
+6. La documentación pública explica ambos modos, dueño, Resend, conexiones,
+   respaldos y recuperación de la clave maestra usando ejemplos genéricos.
+7. La instalación existente conserva sus datos y su acceso. Antes de activar
+   cloud se ensaya con respaldo la asignación de sus datos al dueño explícito;
+   nunca se entregan al primer registrante ni se recrea la base.
+
+Orden: correos con Resend; usuarios y superadmin con Better Auth; aislamiento
+multicuenta y conexiones cifradas desde la interfaz; pagos una vez elegido el modelo.
+Cada bloque incluye su interfaz, pruebas y documentación. El registro público
+solo se habilita después de verificar el aislamiento y ensayar la migración;
+el bloque de autenticación puede probarse antes en un entorno sintético.
+El flujo de pagos se implementa en el cambio OpenSpec `polar-admin-portal`.

@@ -4,6 +4,8 @@ import '../../landing/brand.css';
 import './style.css';
 import { api } from './api.js';
 import { ApiKeysPage } from './agent-workbench.jsx';
+import { CloudLogin, ProviderConnection } from './cloud.jsx';
+import { BillingPage, CloudAdmin } from './billing.jsx';
 import { Icon } from './icons.jsx';
 import { resources, resourceEntries } from '../../shared/resources.js';
 import { Notice, useConfirm } from './components.jsx';
@@ -12,16 +14,21 @@ function getRoute() {
   const raw = window.location.hash.slice(1) || '/conversations';
   const [path, query = ''] = raw.split('?');
   const [, resource, id] = path.split('/');
+  if (resource === 'channels' && id === 'new') {
+    history.replaceState(null, '', '#/channels');
+    return { raw: '/channels', resource: 'channels', id: undefined, query: '' };
+  }
   return {
     raw,
     resource:
-      Object.hasOwn(resources, resource) || resource === 'api_keys' ? resource : 'conversations',
+      Object.hasOwn(resources, resource) || ['api_keys','cloud_accounts','billing'].includes(resource) ? resource : 'conversations',
     id,
     query,
   };
 }
 function App() {
   const [session, setSession] = useState(undefined);
+  const [mode, setMode] = useState(null);
   const [startupError, setStartupError] = useState('');
   const [retry, setRetry] = useState(0);
   const [route, setRoute] = useState(getRoute);
@@ -98,8 +105,10 @@ function App() {
   useEffect(() => {
     let stopped = false;
     setStartupError('');
-    api('/session')
-      .then((data) => {
+    api('/public-config')
+      .then(async (config) => {
+        if (!stopped) setMode(config.mode);
+        const data = await api('/session');
         if (!stopped) setSession(data.user);
       })
       .catch((error) => {
@@ -211,12 +220,14 @@ function App() {
         <p role="status">Abriendo tu espacio de trabajo…</p>
       </main>
     );
-  if (!session)
+  const LoginPage = mode === 'cloud' ? CloudLogin : Login;
+  if (!session || (mode === 'cloud' && /^\/(verify|reset)\?/.test(route.raw)))
     return (
       <>
-        <Login
+        <LoginPage
           onLogin={(user) => {
             setSession(user);
+            setRoute(getRoute());
             setStartupError('');
             refresh();
           }}
@@ -228,7 +239,7 @@ function App() {
         {dialog}
       </>
     );
-  const def = resources[route.resource] || { label: 'Claves API', group: 'Configuración' };
+  const def = resources[route.resource] || { label: route.resource === 'cloud_accounts' ? 'Administración' : route.resource === 'billing' ? 'Facturación' : 'Claves API', group: 'Configuración' };
   const activeSection = def.navigationParent || route.resource;
   const back =
     route.resource === 'conversations' && route.id && route.id !== 'new'
@@ -281,7 +292,7 @@ function App() {
           {['Operación', 'Configuración'].map((group) => (
             <div className="nav-group" key={group}>
               <p className="nav-label">{group}</p>
-              {[...resourceEntries, ['api_keys', { label: 'Claves API', group: 'Configuración' }]]
+              {[...resourceEntries, ['api_keys', { label: 'Claves API', group: 'Configuración' }], ...(mode === 'cloud' ? [['billing',{label:'Facturación',group:'Configuración'}]] : []), ...(session.role === 'superadmin' ? [['cloud_accounts',{label:'Administración',group:'Configuración'}]] : [])]
                 .filter(([, r]) => r.group === group)
                 .map(([key, r]) => (
                   <button
@@ -379,8 +390,12 @@ function App() {
                 ))}
               </nav>
             )}
-          {route.resource === 'api_keys' ? (
-            <ApiKeysPage confirm={confirm} setDirty={setDirty} />
+          {route.resource === 'cloud_accounts' ? (
+            session.role === 'superadmin' ? <CloudAdmin section={route.id} navigate={navigate} confirm={confirm} setDirty={setDirty}/> : <Notice error>No tienes acceso a la administración.</Notice>
+          ) : route.resource === 'billing' && mode === 'cloud' ? (
+            <BillingPage/>
+          ) : route.resource === 'api_keys' ? (
+            <>{session.workspaceId && <p className="muted">Para usar tu API key, incluye el encabezado <code>X-OpenFunnel-Workspace: {session.workspaceId}</code>.</p>}<ApiKeysPage confirm={confirm} setDirty={setDirty} /></>
           ) : route.resource === 'conversations' && route.id !== 'new' ? (
             <ConversationInbox
               id={route.id}
@@ -454,6 +469,7 @@ function App() {
               navigate={navigate}
               open={open}
               onCreate={() => navigate(`/${route.resource}/new`)}
+              connection={['channels','ai_agents'].includes(route.resource) ? (onConfigured) => <ProviderConnection onConfigured={onConfigured} key={`provider-${route.resource}`} provider={route.resource === 'channels' ? 'zernio':'llm'} onSaved={refresh} setDirty={setDirty} confirm={confirm} /> : undefined}
             />
           )}
         </main>
@@ -579,6 +595,8 @@ function Login({ onLogin, error: initialError, retry, theme, toggleTheme }) {
       </div>
       <footer>
         OpenFunnel · Un motor conversacional abierto. <a href="./docs/">Documentación</a>
+        {' · '}<a href="./docs/terminos.html">Términos de servicio</a>
+        {' · '}<a href="./docs/privacidad.html">Política de privacidad</a>
       </footer>
     </main>
   );

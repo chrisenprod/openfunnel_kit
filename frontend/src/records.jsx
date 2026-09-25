@@ -626,7 +626,8 @@ export function ConversationInbox({ id, query, version, navigate, open, children
   );
 }
 
-export function ResourceList({ resource, query, version, navigate, open, onCreate }) {
+export function ResourceList({ resource, query, version, navigate, open, onCreate, connection }) {
+  const [connectionConfigured, setConnectionConfigured] = useState(false);
   const def = resources[resource];
   const [localVersion, setLocalVersion] = useState(0);
   const params = new URLSearchParams(query);
@@ -658,14 +659,14 @@ export function ResourceList({ resource, query, version, navigate, open, onCreat
           </h1>
           {def.note && <p className="muted">{def.note}</p>}
         </div>
-        <button
-          className={`button ${resource === 'channels' ? 'secondary' : 'primary'}`}
+        {resource !== 'channels' && <button
+          className={`button ${resource === 'ai_agents' && !connectionConfigured ? 'secondary' : 'primary'}`}
           onClick={onCreate}
         >
           <Icon name="plus" /> Crear {def.singular}
-          {resource === 'channels' ? ' manual' : ''}
-        </button>
+        </button>}
       </div>
+      {connection?.(setConnectionConfigured)}
       {resource === 'channels' && (
         <>
           <Notice error>
@@ -762,14 +763,14 @@ export function ResourceList({ resource, query, version, navigate, open, onCreat
                   <p className="muted">
                     {filtered
                       ? 'Prueba otros filtros o inicia una nueva búsqueda.'
-                      : `Crea tu primer registro para comenzar.`}
+                      : resource === 'channels' ? 'Tus canales aparecerán aquí al conectarlos o sincronizarlos desde Zernio.' : `Crea tu primer registro para comenzar.`}
                   </p>
-                  <button
+                  {(filtered || resource !== 'channels') && <button
                     className="button secondary"
                     onClick={filtered ? () => navigate(`/${resource}`, false) : onCreate}
                   >
                     {filtered ? 'Limpiar filtros' : `Crear ${def.singular}`}
-                  </button>
+                  </button>}
                 </div>
               )}
               <Pagination

@@ -9,12 +9,18 @@ El [checklist reutilizable](docs/checklists/CHECKLIST-PROYECTO.md) describe el p
 
 El [checklist del MVP](docs/checklists/CHECKLIST-MVP.md) cubre diseño, especificación, implementación, integraciones y pruebas. El [checklist de infraestructura y producción](docs/checklists/CHECKLIST-INFRAESTRUCTURA-PRODUCCION.md) continúa con Docker, auditoría, GitHub Actions, VPS y validación operativa. Ambos son plantillas reutilizables.
 
+El [checklist microSaaS](docs/checklists/CHECKLIST-MICROSAAS.md) es una plantilla reutilizable para el curso y para otras aplicaciones: correos con Resend, registro, verificación y recuperación de cuentas, superadmin, multitenancy, API keys, términos de servicio, política de privacidad y pagos con Polar.sh. El alcance y el estado de la cuarta etapa de OpenFunnel se documentan en el [PRD §14](docs/PRD.md#14-cuarta-etapa-microsaas-con-cuentas-y-conexiones-propias).
+
+El modo opcional `APP_MODE=cloud` añade registro y recuperación con Better Auth/Resend, dueño verificado mediante `CLOUD_OWNER_EMAIL` y un espacio SQLite por cuenta. Canales y Agentes permiten guardar claves propias cifradas. Disponible en esta rama, sin activar cloud en producción. [Configurar cuentas y conexiones](docs/site/cuentas.md); la guía se publica también en `/docs/cuentas.html`. El modo predeterminado conserva el acceso single user.
+
+Los [Términos de servicio](docs/site/terminos.md) y la [Política de privacidad](docs/site/privacidad.md) distinguen el código abierto y el autohospedaje del cloud oficial operado por MOCCA IA SpA. Se generan en `/docs/terminos.html` y `/docs/privacidad.html` tanto para la app como para la landing. La política señala los datos de alojamiento y conservación que deben completarse antes de abrir el registro público.
+
 El [PRD de la plataforma](docs/PRD.md) define la primera entrega: acceso de un único
 administrador, esquema de datos y CRUD de los módulos base, con tickets y pipelines.
 La segunda etapa implementa canales Zernio (Instagram/WhatsApp), mensajería y agentes
 con SDK OpenAI sobre endpoint configurable, con Azure como proveedor de esta instalación.
 Configuración y límites en [la guía de integraciones](docs/deploy/INTEGRACIONES.md).
-La cuarta etapa añade [API keys, contexto, versiones de prompts y pruebas aisladas](docs/api/AGENTES.md)
+La preparación de agentes añade [API keys, contexto, versiones de prompts y pruebas aisladas](docs/api/AGENTES.md)
 en la rama de desarrollo; no está desplegada en producción. MCP sigue pendiente. La verificación real
 completa de respuestas se registra separadamente de las pruebas simuladas.
 
@@ -79,7 +85,8 @@ admite TXT, MD, DOC, DOCX y PDF con texto (5 MiB/archivo, 10 archivos, 30000 car
 Original BLOB y texto permanecen en SQLite; se pueden abrir, descargar, reemplazar y
 eliminar. El texto se extrae una vez y se incluye en cada llamada, sin RAG/OCR.
 La prueba mantiene chat temporal y simula herramientas. Modelo y proveedor se
-configuran únicamente en `.env`, sin campos editables por agente.
+configuran por espacio desde la interfaz; self-hosted también admite entorno,
+sin campos editables por agente.
 
 ## Stack
 
@@ -101,7 +108,10 @@ Ejecutar los comandos desde la raíz del proyecto:
 npm install
 ```
 
-Configurar `.env` a partir de `.env.example` sin sobrescribir valores existentes.
+Configurar `.env.local` a partir de `.env.example` sin sobrescribir valores existentes.
+`npm run dev:backend` carga solo `.env.local`; `npm start` carga `.env` para producción.
+Mantener bases y secretos separados entre entornos. Docker usa su archivo dedicado
+con variables `DOCKER_*`, fuera del repositorio.
 Definir `admin_user` y una contraseña propia de 12–128 caracteres en `admin_pass`.
 `APP_ORIGIN` debe coincidir exactamente con el origen usado en el navegador:
 por defecto `http://localhost:5173`. Las credenciales no se gestionan desde la UI.
@@ -141,7 +151,7 @@ Para explorar la app con datos ficticios, ejecutar `npm run seed:demo`. Añade
 12 contactos, 12 conversaciones con 36 mensajes, 12 tickets, dos pipelines con
 nueve etapas, tres usuarios, tres canales, dos agentes, tres prompts y tres tools.
 Los ejemplos se identifican como Demo; no conectan servicios ni envían mensajes.
-La carga usa la base configurada en `.env`, es transaccional y utiliza IDs estables:
+La carga usa la base configurada en `.env.local`, es transaccional y utiliza IDs estables:
 repetirla no duplica registros existentes ni sobrescribe sus ediciones. No borrar
 etapas del ejemplo antes de repetir la carga. Los datos se pueden editar desde la UI.
 
@@ -258,3 +268,12 @@ Si no hay una sesión de `chrisenprod`, ejecutar `gh auth login --hostname githu
 El remoto `origin` apunta a `https://github.com/chrisenprod/openfunnel_kit.git`.
 
 Mantener el proyecto simple: añadir herramientas, dependencias y archivos solo cuando una necesidad concreta los justifique.
+
+## Facturación cloud opcional
+
+`BILLING_ENABLED=true` habilita suscripciones y créditos con Polar en cloud.
+Configuración y operación en [la guía de facturación](docs/site/facturacion.md).
+API Polar desde backend y verificación con `standardwebhooks`; sin SDK frontend.
+`backend/billing.js` conserva planes, períodos y operaciones en SQLite de control;
+`backend/polar.js` encapsula el proveedor. No activar cobros ni usar tarjetas reales
+en QA: usar sandbox o transportes simulados. Un solo worker por SQLite.

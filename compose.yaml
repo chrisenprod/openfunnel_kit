@@ -13,9 +13,21 @@ services:
       PORT: "3001"
       DATABASE_PATH: /app/data/app.sqlite
       APP_ORIGIN: ${DOCKER_APP_ORIGIN:?Define DOCKER_APP_ORIGIN en el archivo de entorno dedicado}
-      admin_user: ${DOCKER_ADMIN_USER:?Define DOCKER_ADMIN_USER en el archivo de entorno dedicado}
-      admin_pass: ${DOCKER_ADMIN_PASS:?Define DOCKER_ADMIN_PASS en el archivo de entorno dedicado}
+      APP_MODE: ${DOCKER_APP_MODE:-self-hosted}
+      admin_user: ${DOCKER_ADMIN_USER:-}
+      admin_pass: ${DOCKER_ADMIN_PASS:-}
       BETTER_AUTH_SECRET: ${DOCKER_BETTER_AUTH_SECRET:-}
+      CLOUD_DATA_DIR: /app/data/cloud
+      CLOUD_OWNER_EMAIL: ${DOCKER_CLOUD_OWNER_EMAIL:-}
+      CLOUD_MAX_ACCOUNTS: ${DOCKER_CLOUD_MAX_ACCOUNTS:-100}
+      PROVIDER_ENCRYPTION_KEY: ${DOCKER_PROVIDER_ENCRYPTION_KEY:-}
+      RESEND_API_KEY: ${DOCKER_RESEND_API_KEY:-}
+      RESEND_FROM: ${DOCKER_RESEND_FROM:-}
+      BILLING_ENABLED: ${DOCKER_BILLING_ENABLED:-false}
+      POLAR_TOKEN: ${DOCKER_POLAR_TOKEN:-}
+      POLAR_SERVER: ${DOCKER_POLAR_SERVER:-production}
+      POLAR_WEBHOOK_SECRET: ${DOCKER_POLAR_WEBHOOK_SECRET:-}
+      LLM_ALLOWED_HOSTS: ${DOCKER_LLM_ALLOWED_HOSTS:-api.openai.com,openrouter.ai,*.openai.azure.com,*.services.ai.azure.com}
       ZERNIO_API_KEY: ${DOCKER_ZERNIO_API_KEY:-}
       PUBLIC_BASE_URL: ${DOCKER_PUBLIC_BASE_URL:-}
       ZERNIO_WEBHOOK_SECRET: ${DOCKER_ZERNIO_WEBHOOK_SECRET:-}

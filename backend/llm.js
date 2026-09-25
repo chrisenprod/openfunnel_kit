@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { HttpError } from './resources.js';
 export const toolRegistry = {
   get_contact: {
@@ -43,8 +43,15 @@ export function llmConfiguration(env) {
   return { baseURL, apiKey, model, configured: !!(validURL && apiKey) };
 }
 export function createLLM(env, injectedClient) {
-  const config = llmConfiguration(env);
-  const client =
+  let config;
+  let client;
+  let clientKey;
+  function refresh() {
+    config = llmConfiguration(env);
+    const nextKey = JSON.stringify([config.baseURL, config.apiKey]);
+    if (nextKey === clientKey) return;
+    clientKey = nextKey;
+    client =
     injectedClient ||
     (config.configured
       ? new OpenAI({
@@ -52,14 +59,22 @@ export function createLLM(env, injectedClient) {
           apiKey: config.apiKey,
           maxRetries: 0,
           timeout: 30000,
+          ...(env.LLM_FETCH ? { fetch: env.LLM_FETCH } : {}),
         })
       : null);
+  }
   function fingerprint(model) {
+    refresh();
     return hash(JSON.stringify([config.baseURL, config.apiKey, model]));
   }
-  async function complete(model, messages, tools = [], extra = {}, requestOptions = {}) {
+  async function complete(model, messages, tools = [], extra = {}, requestOptions = {}, billing = {}) {
+    refresh();
+    const before = fingerprint(model);
+    const beforeModel = config.model, beforeVersion = env.LLM_CONNECTION_VERSION;
+    if (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE()) throw new HttpError(403, 'Cuenta suspendida.');
     if (!client || !model)
       throw new HttpError(503, 'Configura LLM_BASE_URL, LLM_API_KEY y el deployment/modelo.');
+    const execute = async () => {
     try {
       const result = await client.chat.completions.create({
         model,
@@ -69,6 +84,7 @@ export function createLLM(env, injectedClient) {
         ...(tools.length ? { tools } : {}),
         ...extra,
       }, requestOptions);
+      if (before !== fingerprint(model) || beforeModel !== config.model || beforeVersion !== env.LLM_CONNECTION_VERSION || (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE())) throw new HttpError(409, 'La conexión cambió durante la ejecución.');
       const choice = result.choices?.[0];
       if (!choice?.message || !['stop', 'tool_calls'].includes(choice.finish_reason))
         throw new Error('invalid_completion');
@@ -95,8 +111,13 @@ export function createLLM(env, injectedClient) {
       problem.providerStatus = status;
       throw problem;
     }
+    };
+    return env.BILLING_METER ? env.BILLING_METER.run('llm', billing.key || randomUUID(), billing.source || 'agent', execute) : execute();
   }
   async function validate(model) {
+    const before = fingerprint(model);
+    const beforeModel = config.model, beforeVersion = env.LLM_CONNECTION_VERSION;
+    const billingId = randomUUID();
     const probe = {
       type: 'function',
       function: {
@@ -117,7 +138,7 @@ export function createLLM(env, injectedClient) {
     ];
     const first = await complete(model, messages, [probe], {
       tool_choice: { type: 'function', function: { name: 'connection_probe' } },
-    });
+    }, {}, {key:`validate:${billingId}:llm:0`,source:'validation'});
     const calls = first.message.tool_calls;
     if (
       !calls ||
@@ -127,16 +148,18 @@ export function createLLM(env, injectedClient) {
       calls[0].function.arguments.trim() !== '{}'
     )
       throw new HttpError(502, 'El modelo no confirmó soporte de tool calling.');
+    env.BILLING_METER?.runSync('tool',`validate:${billingId}:tool:0`,'validation',()=>({ok:true}));
     const last = await complete(model, [
       ...messages,
       first.message,
       { role: 'tool', tool_call_id: calls[0].id, content: '{"ok":true}' },
-    ]);
+    ], [], {}, {}, {key:`validate:${billingId}:llm:1`,source:'validation'});
     if (!last.message.content?.trim() || last.message.tool_calls?.length)
       throw new HttpError(502, 'El modelo no completó la respuesta después de la herramienta.');
-    return fingerprint(model);
+    if (before !== fingerprint(model) || beforeModel !== config.model || beforeVersion !== env.LLM_CONNECTION_VERSION) throw new HttpError(409, 'La conexión cambió durante la validación.');
+    return before;
   }
-  return { config, complete, validate, fingerprint };
+  return { get config() { refresh(); return config; }, complete, validate, fingerprint };
 }
 
 export function agentMessages(prompt, documents = []) {

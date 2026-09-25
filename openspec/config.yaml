@@ -7,9 +7,15 @@ context: |
   antes de proponer cambios. docs/PRD.md propone la primera etapa: acceso single user
   con admin_user/admin_pass, esquema de datos y CRUD de los módulos base con tickets
   y pipelines. Concretar sus supuestos al especificar. El PRD §10 define ahora Zernio y SDK OpenAI/Azure para la segunda etapa;
-  PRD §12 acota la cuarta etapa: agent-workbench añade API keys con scopes, documentos con originales BLOB, docs públicas,
+  PRD §12 acota la preparación de agentes: agent-workbench añade API keys con scopes, documentos con originales BLOB, docs públicas,
   versiones de prompts y pruebas aisladas en desarrollo. MCP queda para después. El checklist del MVP es reutilizable,
   no un roadmap del producto.
+  PRD §14 define la cuarta etapa microSaaS y docs/checklists/CHECKLIST-MICROSAAS.md la sigue:
+  Resend, usuarios/superadmin con Better Auth, multicuenta y conexiones propias, después pagos.
+  cloud-accounts-and-provider-keys especifica los tres primeros bloques como capacidades abiertas;
+  CLOUD_OWNER_EMAIL designa al dueño de cada instancia después de verificar su correo.
+  polar-admin-portal implementa suscripciones mensuales de Polar y créditos por llamada LLM/tool,
+  administración y portal de cliente. Facturación opt-in y precios/créditos configurables por instancia.
   PRD §11 define infraestructura y producción: containerize-app implementa Docker local;
   secure-production-preflight añade auditoría previa, CI y preparación privada del entorno.
   publish-app-vps publica HTTPS y traslada datos con aislamiento y respaldo verificados;

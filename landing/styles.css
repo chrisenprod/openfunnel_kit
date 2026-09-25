@@ -150,7 +150,7 @@ h3 { font-weight: 400; }
 .site-footer .wordmark { font-size: 24px; }
 .site-footer p { font-size: 12px; line-height: 1.7; color: var(--muted); margin-top: 12px; }
 .footer-links { text-align: right; }
-.footer-links nav { justify-content: flex-end; gap: 28px; }
+.footer-links nav { justify-content: flex-end; flex-wrap: wrap; gap: 16px 28px; }
 .footer-links nav a { font-size: 13px; }
 .repository-address { display: inline-block; font-size: 11px; line-height: 1.6; color: var(--muted); margin-top: 14px; }
 .repository-address:hover { text-decoration: underline; }
