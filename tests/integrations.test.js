@@ -167,7 +167,6 @@ function fixture(t, { platform = 'instagram', sendMode = 'ok', complete } = {}) 
     });
     const agent = save(db, 'ai_agents', {
       name: 'Test agent',
-      provider: 'azure',
       active: true,
       prompt_ids: [prompt.id],
     });
@@ -732,3 +731,28 @@ test('LLM: Azure resource root uses v1, explicit compatible endpoints remain unc
     false,
   );
 });
+
+for (const field of ['prompt', 'document']) {
+  test(`Workbench: ${field} update during generation invalidates response`, async (t) => {
+    let live = false, release, started;
+    const waiting = new Promise((resolve) => { started = resolve; });
+    const seen = [];
+    const a = fixture(t, { complete: async (input) => {
+      if (input.tool_choice) return { choices: [{ finish_reason: 'tool_calls', message: { role: 'assistant', tool_calls: [{ id: 'probe', type: 'function', function: { name: 'connection_probe', arguments: '{}' } }] } }] };
+      if (live) { seen.push(input); started(); await new Promise((resolve) => { release = resolve; }); }
+      return { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: 'Respuesta' } }] };
+    } });
+    await a.setup(); const agent = await a.agent();
+    a.db.prepare("INSERT INTO agent_documents (id,ai_agent_id,filename,media_type,size,original,extracted_text,status,created_at,updated_at) VALUES ('reference',?,'horarios.txt','text/plain',26,?,'Horario: lunes a viernes.','ready','2026-01-01','2026-01-01')").run(agent.id, Buffer.from('Horario: lunes a viernes.'));
+    live = true; a.receive(a.incoming()); const processing = a.i.tick(); await waiting;
+    assert.match(seen[0].messages[1].content, /lunes a viernes/);
+    if (field === 'prompt') {
+      const prompt = a.get('prompts')[0];
+      save(a.db, 'prompts', { content: 'Instrucciones nuevas', expected_version: prompt.version }, prompt.id);
+    } else a.db.prepare("UPDATE agent_documents SET extracted_text='Horario actualizado.',revision=revision+1 WHERE id='reference'").run();
+    release(); await processing;
+    assert.equal(a.get('outbound_messages').length, 0);
+    assert.equal(a.get('agent_runs')[0].status, 'cancelled');
+    assert.equal(a.requests.filter((r) => r.method === 'POST' && r.path.endsWith('/messages')).length, 0);
+  });
+}

@@ -1,0 +1,5 @@
+
+# Preserve binary document fixtures byte for byte.
+*.pdf binary
+*.doc binary
+*.docx binary

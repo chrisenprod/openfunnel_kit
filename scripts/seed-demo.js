@@ -15,6 +15,8 @@ export function seedDemo(db) {
     const columns = Object.keys(row);
     // Table and column names are defined exclusively by this fixture file.
     db.prepare(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')})`).run(...Object.values(row));
+    if (table === 'prompts') db.prepare('INSERT INTO prompt_versions (prompt_id,version,name,description,content,active,actor,created_at) VALUES (?,1,?,?,?,?,?,?)')
+      .run(row.id, row.name, row.description, row.content, row.active, 'seed', timestamp);
     counts[table] = (counts[table] || 0) + 1;
     return row.id;
   };
@@ -46,7 +48,7 @@ export function seedDemo(db) {
     const agents = ['Asistente comercial', 'Asistente de soporte'].map((name, index) => {
       const exists = db.prepare('SELECT 1 FROM ai_agents WHERE id=?').get(id(`agent-${index}`));
       const agentId = insert('ai_agents', `agent-${index}`, {
-        name: `${name} · Demo`, description: 'Configuración de ejemplo. Sin proveedor ni modelo conectado.', provider: null, model: null, active: 1,
+        name: `${name} · Demo`, description: 'Configuración de ejemplo. Usa la conexión IA del servidor si está configurada.', active: 1,
       });
       // Only initialize associations on first creation; preserve later UI edits.
       if (!exists) {

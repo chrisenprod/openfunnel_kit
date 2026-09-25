@@ -3,17 +3,19 @@ import { createRoot } from 'react-dom/client';
 import '../../landing/brand.css';
 import './style.css';
 import { api } from './api.js';
+import { ApiKeysPage } from './agent-workbench.jsx';
 import { Icon } from './icons.jsx';
 import { resources, resourceEntries } from '../../shared/resources.js';
 import { Notice, useConfirm } from './components.jsx';
-import { ConversationChannelFilter, ConversationPanel, RecordDetail, RecordForm, ResourceList } from './records.jsx';
+import { ConversationInbox, RecordDetail, RecordForm, ResourceList } from './records.jsx';
 function getRoute() {
   const raw = window.location.hash.slice(1) || '/conversations';
   const [path, query = ''] = raw.split('?');
   const [, resource, id] = path.split('/');
   return {
     raw,
-    resource: Object.hasOwn(resources, resource) ? resource : 'conversations',
+    resource:
+      Object.hasOwn(resources, resource) || resource === 'api_keys' ? resource : 'conversations',
     id,
     query,
   };
@@ -198,9 +200,8 @@ function App() {
   }
   const refresh = () => setVersion((x) => x + 1);
   function open(resource, id) {
-    const query = resource === 'conversations' && route.resource === 'conversations'
-      ? route.query
-      : '';
+    const query =
+      resource === 'conversations' && route.resource === 'conversations' ? route.query : '';
     navigate(`/${resource}/${id}${query ? `?${query}` : ''}`);
   }
   if (session === undefined)
@@ -227,11 +228,12 @@ function App() {
         {dialog}
       </>
     );
-  const def = resources[route.resource];
+  const def = resources[route.resource] || { label: 'Claves API', group: 'Configuración' };
   const activeSection = def.navigationParent || route.resource;
-  const back = route.resource === 'conversations' && route.id && route.id !== 'new'
-    ? `/conversations${route.query ? `?${route.query}` : ''}`
-    : listRoutes.current[route.resource] || `/${route.resource}`;
+  const back =
+    route.resource === 'conversations' && route.id && route.id !== 'new'
+      ? `/conversations${route.query ? `?${route.query}` : ''}`
+      : listRoutes.current[route.resource] || `/${route.resource}`;
   return (
     <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <a
@@ -279,7 +281,7 @@ function App() {
           {['Operación', 'Configuración'].map((group) => (
             <div className="nav-group" key={group}>
               <p className="nav-label">{group}</p>
-              {resourceEntries
+              {[...resourceEntries, ['api_keys', { label: 'Claves API', group: 'Configuración' }]]
                 .filter(([, r]) => r.group === group)
                 .map(([key, r]) => (
                   <button
@@ -314,7 +316,7 @@ function App() {
         </button>
         <div className="sidebar-footer">
           <span className="status-dot" />
-          <span className="nav-text">Espacio de trabajo local</span>
+          <span className="nav-text">Tu espacio de trabajo</span>
         </div>
       </aside>
       {navHint && (
@@ -338,9 +340,7 @@ function App() {
             >
               Menú
             </button>
-            <span className="topbar-location">
-              Plataforma <span aria-hidden="true">/</span> {def.group || 'Operación'}
-            </span>
+            <span className="topbar-location">{def.group || 'Operación'}</span>
           </div>
           <div className="inline-actions">
             <button
@@ -357,28 +357,55 @@ function App() {
             </button>
           </div>
         </header>
-        <main id="main-content" className="content" tabIndex="-1">
+        <main id="main-content" className="content" data-resource={route.resource} tabIndex="-1">
           <Notice error>{globalError}</Notice>
-          {activeSection === 'ai_agents' && (
-            <nav className="module-navigation" aria-label="Configuración de Agentes IA">
-              {[
-                ['ai_agents', 'Agentes'],
-                ['prompts', 'Prompts'],
-                ['tools', 'Tools'],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  className={`module-link ${route.resource === key ? 'active' : ''}`}
-                  aria-current={route.resource === key ? 'page' : undefined}
-                  onClick={() => navigate(listRoutes.current[key] || `/${key}`)}
-                >
-                  <Icon name={key} />
-                  {label}
-                </button>
-              ))}
-            </nav>
-          )}
-          {route.id === 'new' ? (
+          {activeSection === 'ai_agents' &&
+            !(route.resource === 'ai_agents' && route.id && route.id !== 'new') && (
+              <nav className="module-navigation" aria-label="Configuración de Agentes IA">
+                {[
+                  ['ai_agents', 'Agentes'],
+                  ['prompts', 'Prompts'],
+                  ['tools', 'Herramientas'],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    className={`module-link ${route.resource === key ? 'active' : ''}`}
+                    aria-current={route.resource === key ? 'page' : undefined}
+                    onClick={() => navigate(listRoutes.current[key] || `/${key}`)}
+                  >
+                    <Icon name={key} />
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            )}
+          {route.resource === 'api_keys' ? (
+            <ApiKeysPage confirm={confirm} setDirty={setDirty} />
+          ) : route.resource === 'conversations' && route.id !== 'new' ? (
+            <ConversationInbox
+              id={route.id}
+              query={route.query}
+              version={version}
+              navigate={navigate}
+              open={open}
+            >
+              {route.id && (
+                <RecordDetail
+                  key={`conversations/${route.id}`}
+                  resource="conversations"
+                  id={route.id}
+                  version={version}
+                  refresh={refresh}
+                  open={open}
+                  navigate={navigate}
+                  back={back}
+                  confirm={confirm}
+                  setDirty={setDirty}
+                  canLeave={canLeave}
+                />
+              )}
+            </ConversationInbox>
+          ) : route.id === 'new' ? (
             <div key={route.raw}>
               <button className="back-link" onClick={() => navigate(back)}>
                 ← Volver a {def.label.toLowerCase()}
@@ -403,36 +430,21 @@ function App() {
               />
             </div>
           ) : route.id ? (
-            <>
-              {route.resource === 'conversations' && (
-                <ConversationChannelFilter query={route.query} version={version} navigate={navigate} />
-              )}
-              <div className={route.resource === 'conversations' ? 'conversation-layout' : ''}>
-                {route.resource === 'conversations' && (
-                  <ConversationPanel
-                    id={route.id}
-                    query={back.split('?')[1] || ''}
-                    version={version}
-                    open={open}
-                  />
-                )}
-                <div className="detail-content">
-                  <RecordDetail
-                    key={`${route.resource}/${route.id}`}
-                    resource={route.resource}
-                    id={route.id}
-                    version={version}
-                    refresh={refresh}
-                    open={open}
-                    navigate={navigate}
-                    back={back}
-                    confirm={confirm}
-                    setDirty={setDirty}
-                    canLeave={canLeave}
-                  />
-                </div>
-              </div>
-            </>
+            <div className="detail-content">
+              <RecordDetail
+                key={`${route.resource}/${route.id}`}
+                resource={route.resource}
+                id={route.id}
+                version={version}
+                refresh={refresh}
+                open={open}
+                navigate={navigate}
+                back={back}
+                confirm={confirm}
+                setDirty={setDirty}
+                canLeave={canLeave}
+              />
+            </div>
           ) : (
             <ResourceList
               key={route.resource}
@@ -446,7 +458,10 @@ function App() {
           )}
         </main>
         <footer className="workspace-footer">
-          OpenFunnel <span>De conversación a resultado.</span>
+          OpenFunnel <span>De conversación a resultado.</span>{' '}
+          <a href="./docs/" target="_blank" rel="noreferrer">
+            Documentación
+          </a>
         </footer>
       </div>
       {dialog}
@@ -470,11 +485,18 @@ function Login({ onLogin, error: initialError, retry, theme, toggleTheme }) {
   async function submit(e) {
     e.preventDefault();
     if (busy) return;
+    // Read the DOM too: password managers may fill inputs without React change events.
+    const credentials = new FormData(e.currentTarget);
     setBusy(true);
     setError('');
     try {
-      const data = await api('/login', { method: 'POST', body: { username, password } });
-      setPassword('');
+      const data = await api('/login', {
+        method: 'POST',
+        body: {
+          username: credentials.get('username'),
+          password: credentials.get('password'),
+        },
+      });
       onLogin(data.user);
     } catch (e) {
       setError(e.message);
@@ -491,34 +513,31 @@ function Login({ onLogin, error: initialError, retry, theme, toggleTheme }) {
         </button>
       </header>
       <div className="login-layout">
-        <div className="login-intro">
-          <p className="eyebrow">Tu espacio de trabajo</p>
-          <h1>
-            Conversaciones claras.
-            <br />
-            Trabajo en orden.
-          </h1>
-          <p className="muted">
-            Organiza contactos, conversaciones y procesos desde un solo lugar.
-          </p>
-          <div className="login-rule" />
-        </div>
         <section className="login-panel" aria-labelledby="login-title">
-          <h2 id="login-title">Acceder a OpenFunnel</h2>
-          <p className="muted">Entra con tu cuenta de administrador.</p>
+          <h1 id="login-title">Bienvenido a OpenFunnel</h1>
+          <p className="muted">Accede a tu espacio de trabajo.</p>
           <Notice error>{error || initialError}</Notice>
           {initialError && !error && (
             <button className="text-button" onClick={retry}>
               Comprobar conexión
             </button>
           )}
-          <form onSubmit={submit} aria-busy={busy}>
+          <form
+            id="login-form"
+            name="login"
+            method="post"
+            autoComplete="on"
+            onSubmit={submit}
+            aria-busy={busy}
+          >
             <fieldset disabled={busy}>
               <legend className="sr-only">Credenciales de acceso</legend>
               <div className="field">
                 <label htmlFor="username">Usuario</label>
                 <input
                   id="username"
+                  name="username"
+                  type="text"
                   autoComplete="username"
                   autoCapitalize="none"
                   spellCheck="false"
@@ -533,6 +552,7 @@ function Login({ onLogin, error: initialError, retry, theme, toggleTheme }) {
                 <div className="password-field">
                   <input
                     id="password"
+                    name="password"
                     type={visible ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
@@ -557,7 +577,9 @@ function Login({ onLogin, error: initialError, retry, theme, toggleTheme }) {
           </form>
         </section>
       </div>
-      <footer>OpenFunnel · Un motor conversacional abierto.</footer>
+      <footer>
+        OpenFunnel · Un motor conversacional abierto. <a href="./docs/">Documentación</a>
+      </footer>
     </main>
   );
 }

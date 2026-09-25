@@ -2,8 +2,8 @@
 
 <img src="../landing/assets/images/openfunnel-mark.webp" alt="Símbolo de OpenFunnel: seis burbujas de conversación forman un asterisco alrededor de un centro abierto" width="96" height="96">
 
-Estado: dirección de producto definida; repositorio, landing y primera etapa manual de la plataforma implementados. El motor conversacional, las integraciones y la oferta cloud están por construir.
-Actualizado: 2026-09-23.
+Estado: dirección de producto definida; base manual, integraciones y motor conversacional implementados, con verificación real parcial. La rama de desarrollo añade acceso acotado por API keys, contexto, versiones de prompts y pruebas aisladas; no está desplegado. La oferta cloud, los procesos automáticos y la entrega a sistemas externos siguen pendientes.
+Actualizado: 2026-09-24.
 
 ## Qué es
 
@@ -123,7 +123,7 @@ La clave de acceso a OpenFunnel y la clave del proveedor de IA son credenciales 
 
 Todos los accesos comparten permisos, validaciones e historial. Las entregas y los reintentos deben evitar duplicar acciones, como crear dos prospectos por el mismo resultado.
 
-Estas son capacidades previstas; todavía no son endpoints ni integraciones disponibles. La primera entrega limita la entrada y la salida al recorrido descrito más abajo. MCP es una vía posterior de acceso al motor, no un requisito para validar el primer caso de uso.
+La lectura de recursos, edición/restauración de prompts y pruebas aisladas por API keys están implementadas en desarrollo; ver [guía](api/AGENTES.md). Procesamiento independiente, webhooks salientes y MCP siguen previstos. La primera entrega limita la entrada y la salida al recorrido descrito más abajo. MCP es una vía posterior de acceso al motor, no un requisito para validar el primer caso de uso.
 
 ## Primera plantilla: Sales para calificación y entrega
 
@@ -253,3 +253,8 @@ Pendiente:
 - Investigar alternativas y verificar disponibilidad de nombre y dominio.
 
 La comunicación y la landing deben presentar Sales, Support y Commerce como plantillas o ejemplos de pipelines del motor conversacional, distinguiendo la primera plantilla a implementar de las capacidades futuras. La bandeja y el pipeline permiten supervisar conversaciones; las integraciones conectan con los sistemas de negocio.
+
+La cuarta etapa conserva una experiencia mínima y completa: archivos originales y
+texto extraído recuperables desde el agente, chat de prueba temporal y documentación
+pública de instalación, operación y API. Modelo/proveedor se configuran en el entorno.
+El conocimiento se incluye en cada llamada; no introduce RAG ni un buscador adicional.

@@ -3,11 +3,13 @@
 Estado: guía visual de la app, aplicada en la primera etapa manual. Los componentes
 viven en `frontend/src/`; la revisión se registra en `docs/qa/PRIMERA-ETAPA.md`.
 
-Actualizado: 2026-09-23. Alcance funcional: [PRD.md](PRD.md).
+Actualizado: 2026-09-24. Alcance funcional: [PRD.md](PRD.md).
 
 Este documento transforma el antiguo `design.md` de exploración de la landing en
 una guía concreta para la aplicación. Conserva la dirección vigente **Campo de tinta**:
-tipografía regular, marfil y azul tinta, composición abierta y divisores finos.
+tipografía regular, marfil y azul tinta, composición abierta y acentos de acuarela.
+El blend aprobado combina la estructura moderna y compacta con pigmento sutil en
+navegación y márgenes; la acuarela no convierte los controles en elementos dibujados.
 Las variantes descartadas y las medidas de sitios de referencia no son reglas de la app.
 
 ## 1. Principios
@@ -23,30 +25,35 @@ Las variantes descartadas y las medidas de sitios de referencia no son reglas de
   entre listado, detalle, conversación y tablero.
 
 No utilizar halos, neón, vidrio, gradientes decorativos, sombras en cada fila,
-ilustraciones detrás de datos ni títulos de escala publicitaria. La acuarela del
-hero pertenece a la presentación comercial; no es un fondo para operar la app.
+ilustraciones detrás de datos ni títulos de escala publicitaria. La app reutiliza
+`landing/assets/images/07-app-watercolor.webp` como decoración no interactiva de
+opacidad contenida en la navegación, el margen superior y el acceso. Tiene transparencia
+real y bordes irregulares de pigmento; desaparece en alto contraste. Los mensajes, tablas, formularios y
+contenidos de conocimiento permanecen sobre superficies limpias. El recurso conserva
+sus permisos de identidad; el código de la interfaz continúa bajo Apache-2.0.
 
 ## 2. Fundamentos y tokens
 
 Los colores base proceden de la dirección vigente de la landing. Los tokens de
-controles y estados completan esa base para la app. Son valores de especificación;
-se implementarán como variables CSS cuando se construya la interfaz.
+controles y estados completan esa base para la app. Los valores se implementan como variables CSS en `frontend/src/style.css`.
 
 ### Color
 
 | Token propuesto | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `--color-page` | `#faf9f6` | `#0c1626` | Fondo de la aplicación. |
-| `--color-surface` | `#f0f1f1` | `#121f32` | Formularios, paneles y zonas secundarias. |
+| `--color-page` | `#fcfbf8` | `#101a28` | Fondo de la aplicación. |
+| `--paper` | `#fffefa` | `#142030` | Compositor y controles secundarios. |
+| `--sidebar-surface` | `#f4f1eb` | `#0d1725` | Navegación marfil / tinta oscura. |
+| `--color-surface` | `#f0f1f2` | `#192738` | Formularios, paneles y zonas secundarias. |
 | `--color-text` | `#152842` | `#edf1f8` | Texto principal. |
 | `--color-muted` | `#4c5b6e` | `#b1bed2` | Ayudas y metadatos legibles. |
-| `--color-line` | `#cdd3da` | `#34415a` | Divisores decorativos. |
+| `--color-line` | `#e0e4e8` | `#29394d` | Divisores decorativos. |
 | `--color-control-border` | `#78879b` | `#71829b` | Límites de inputs y controles. |
-| `--color-accent` | `#2349a0` | `#b5c3ff` | Enlaces, foco, selección y botón primario. |
+| `--color-accent` | `#1b385b` | `#b5cdee` | Enlaces, foco, selección y botón primario. |
 | `--color-on-accent` | `#ffffff` | `#0c1626` | Texto sobre el botón primario. |
-| `--color-accent-hover` | `#193c88` | `#cad3ff` | Hover del botón primario. |
+| `--color-accent-hover` | `#284c72` | `#cee0f7` | Hover del botón primario. |
 | `--color-accent-active` | `#12316e` | `#a2b3f5` | Botón primario presionado. |
-| `--color-selected` | `#e5ebfa` | `#1c3052` | Fondo de navegación o fila seleccionada. |
+| `--color-selected` | `#e8eef6` | `#223750` | Fondo de navegación o fila seleccionada. |
 | `--color-danger` | `#a52938` | `#ff9ca8` | Error y acciones destructivas. |
 | `--color-on-danger` | `#ffffff` | `#0c1626` | Texto sobre botón destructivo sólido. |
 | `--color-success` | `#176446` | `#8bd4b5` | Confirmación de una operación real. |
@@ -98,8 +105,8 @@ pesos muy gruesos ni convertir descripciones en bloques de texto técnico.
 | Zona | Contrato |
 |---|---|
 | Navegación lateral | 216 px expandida o 76 px compacta en escritorio, con preferencia persistida. Iconos SVG de 20 px; en modo compacto, etiqueta visible de 10/12 px bajo cada icono, nombre accesible y tooltip al enfocar/pasar el cursor. Ítem activo con fondo seleccionado y `aria-current="page"`. En móvil mantener iconos y textos completos. |
-| Encabezado | Altura mínima 56 px; contexto de la vista, selector de tema y cierre de sesión. Las acciones del módulo viven en el encabezado de contenido. |
-| Contenido | Padding 20 px vertical y 24 px horizontal en escritorio, 24 px en tablet y 16 px en móvil. Ancho máximo 1440 px para listados; formularios de lectura hasta 720 px. |
+| Encabezado | Altura mínima 48 px; contexto de la vista, selector de tema y cierre de sesión. Las acciones del módulo viven en el encabezado de contenido. |
+| Contenido | Padding 16 px superior y 24 px horizontal en escritorio/tablet, 16 px en móvil. Ancho máximo 1600 px para listados; formularios de lectura hasta 720 px. |
 | Encabezado de vista | Título, explicación breve si aporta información y una acción primaria. Los filtros ocupan una fila inferior. |
 | Detalle | Título y navegación de regreso; contenido principal y datos relacionados. En ancho reducido, una columna. |
 
@@ -173,8 +180,15 @@ de guardar. Usar el nombre de la entidad: «Crear contacto», «Crear pipeline»
 - **Usuarios:** explicación breve «Personas para asignación; no habilita acceso».
 - **Canales:** tipo y estado; «Sin integración» visible. No mostrar conectar ni iconos de conexión exitosa.
 - **Agentes IA:** datos, prompts ordenados y tools asociadas en grupos simples.
-  Mostrar «Ejecución pendiente» sin acciones de probar o ejecutar.
+  Detalle con Instrucciones/Herramientas/Contexto/Probar. Contexto incluye carga por botón
+  o arrastre, límites, lista persistente con estados, texto extraído, descarga,
+  reemplazo y eliminación. Probar es un chat temporal con reinicio y candidato
+  opcional; consumo y herramientas simuladas en detalles. Modelo/proveedor solo en
+  entorno, sin inputs ni picker. «Comprobar conexión» muestra estado de conexión.
 - **Prompts:** textarea amplio con título y ayuda; no un editor de código por defecto.
+  Versiones desplegables con autor/fecha y restauración confirmada, indicando agentes afectados.
+- **Claves API:** formulario compacto de nombre, vencimiento y permisos; secreto visible
+  una sola vez y lista con último uso, vencimiento y revocación confirmada.
 - **Tools:** definición y esquema JSON opcional, con errores legibles en el campo.
   No incluir campos de credenciales o una consola de ejecución.
 - **Contactos:** datos principales y listas relacionadas de conversaciones/tickets.
@@ -183,7 +197,7 @@ Los selectores cerrados y de referencias usan `AppSelect`: disparador con valor 
 icono cuando aporta contexto; popup propio con búsqueda, lista de opciones, selección
 y opción deshabilitada. Soportan flechas, Enter, Escape, Tab, clic fuera y validación
 obligatoria. El popup se ajusta al viewport y los contenedores con scroll no lo recortan.
-La entrada libre de modelo conserva sus sugerencias. Instagram y WhatsApp tienen
+El modelo no tiene entrada libre ni selector en la UI; se configura en el servidor. Instagram y WhatsApp tienen
 iconos SVG reconocibles y colores discretos adaptados a cada tema; siempre acompañan texto.
 
 ### Conversaciones y mensajes
@@ -300,3 +314,66 @@ no construir por adelantado una biblioteca independiente.
   implementar esta guía ni se garantiza que existan en un clon del repositorio.
 - Las imágenes de producción utilizadas por la landing permanecen en
   `landing/assets/images/`; mover documentos no cambia las rutas de esos recursos.
+
+
+## 7. Blend moderno y acuarela aplicado
+
+La estructura moderna domina: tablas sin cuadrícula completa, fichas abiertas con
+pares etiqueta/valor, secciones de configuración sin cajas anidadas y pestañas de
+agente con una pincelada de selección. Los inputs conservan borde y foco accesibles.
+Los estados neutrales no se convierten en alertas de color.
+
+En conversación, «Detalles y ticket» agrupa la ficha y el vínculo al ticket en un
+desplegable operable por teclado. El estado de atención y sus acciones preceden al
+historial; el compositor manual lo sigue. Las entregas fallidas o inciertas y los
+errores siguen visibles; la actividad técnica del agente conserva su desplegable.
+El cambio visual no modifica envío, deduplicación, revisión ni confirmación de salida.
+
+Acceso presenta un formulario centrado con una acción principal y una decoración
+suave de margen. Los catálogos, formularios, tableros, claves API y vistas de
+conocimiento/prueba comparten los tokens, sin depender de la galería local ignorada.
+Claves API abre con listado o estado vacío, sin campos. Crear abre un panel lateral
+no modal de 360 px; en móvil aparece antes del listado. Tiene cierre explícito,
+foco inicial y retorno al disparador; Escape respeta la confirmación de borrador o
+secreto visible. Los permisos se presentan verticalmente con una descripción breve.
+
+El agente presenta instrucciones, conocimiento, herramientas y configuración a la
+izquierda; la prueba permanece a la derecha. En menos de 850 px se apilan. Cambiar
+secciones conserva la prueba y descartar configuración no elimina la protección de
+su borrador. La navegación general de Agentes/Prompts/Herramientas queda en los
+listados; el detalle usa un enlace de vuelta, sin duplicar barras de navegación.
+
+Los filtros secundarios se agrupan bajo «Filtros», con indicador de valores activos.
+El campo de búsqueda y el selector de canal permanecen visibles. No se muestra un
+control de filtros en recursos que no tienen filtros.
+
+La revisión de esta entrega se documenta en `docs/qa/UI-ACUARELA.md`.
+
+### Bandeja y fichas operativas
+
+Conversaciones utiliza una lista de 310 px junto al hilo en escritorio. Canal,
+búsqueda y filtros viven en la lista; selección y paginación conservan la URL. El
+historial tiene scroll propio y el compositor queda al pie, sin ficha de metadatos
+antes de los mensajes. En anchos de hasta 900 px se muestra la lista o el hilo, con
+vuelta explícita. «Detalles» abre una columna en escritorio; hasta 1200 px ocupa el
+área del hilo temporalmente y oculta sus controles sin desmontar ni perder el borrador.
+Los avisos de entrega y errores permanecen visibles en una zona desplazable.
+
+El canal abre en lectura: identidad y acceso a bandeja, conexión, estado IA, agente
+y cinco conversaciones recientes. «Cambiar» abre el selector de agente; guardar
+conserva el estado IA y cancelar protege el borrador. Activar/apagar IA es una acción
+separada y explícita. Reconexión e información técnica se consultan bajo demanda.
+El listado separa cuenta, conexión y atención, con iconos de plataforma.
+
+Contactos prioriza conversaciones, tickets y notas, con datos de contacto secundarios.
+Tickets prioriza descripción y acceso a conversación; pipelines su tablero; prompts
+las instrucciones y versiones; herramientas su descripción y agentes asociados. Las
+fichas tienen edición explícita y eliminación dentro de «Más acciones». No se repite
+el título como campo. La paginación muestra controles solo cuando hay varias páginas.
+
+### Documentación pública
+
+Sitio estático con paleta Campo de tinta, tipografía regular, navegación lateral
+(móvil en dos columnas), búsqueda de páginas y enlaces a secciones. Código con scroll
+horizontal propio. Sin login; enlace desde el footer de app, acceso y landing.
+Fuentes en docs/site y lista explícita de publicación en scripts/build-docs.js.

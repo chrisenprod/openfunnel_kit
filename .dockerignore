@@ -39,7 +39,21 @@ landing/assets/**
 !landing/assets/images/
 landing/assets/images/**
 !landing/assets/images/openfunnel-mark.webp
+!landing/assets/images/07-app-watercolor.webp
 # Only the internal web-server configuration belongs in the image.
 !deploy/
 deploy/**
 !deploy/app.nginx.conf
+
+# Explicit public documentation build inputs only.
+!scripts/
+scripts/**
+!scripts/build-docs.js
+!docs/
+docs/**
+!docs/site/
+!docs/site/*.md
+!docs/site/site.css
+!docs/site/site.js
+!docs/api/
+!docs/api/AGENTES.md

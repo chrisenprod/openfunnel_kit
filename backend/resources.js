@@ -61,7 +61,7 @@ function validate(db, table, body, old) {
     throw new HttpError(400, 'Se requiere un objeto JSON.');
   const def = definition(table);
   const extra =
-    table === 'pipelines' ? ['stages'] : table === 'ai_agents' ? ['prompt_ids', 'tool_ids'] : [];
+    table === 'pipelines' ? ['stages'] : table === 'ai_agents' ? ['prompt_ids', 'tool_ids'] : table === 'prompts' ? ['expected_version'] : [];
   for (const key of Object.keys(body))
     if (!def.fields.some((f) => f.key === key && !f.readOnly) && !extra.includes(key))
       fail(key, 'Campo desconocido.');
@@ -227,6 +227,9 @@ export function detail(db, table, id) {
     row.effective_agent_name =
       get(db, 'ai_agents', row.ai_agent_id || channel.default_ai_agent_id || '')?.name || null;
   }
+  if (table === 'ai_agents') {
+    delete row.provider; delete row.model; delete row.business_context;
+  }
   return { ...row, labels };
 }
 export function list(db, table, params) {
@@ -288,9 +291,15 @@ export function list(db, table, params) {
     pageSize,
   };
 }
-export function save(db, table, body, id) {
+export function save(db, table, body, id, actor = 'admin') {
   definition(table);
   const old = id ? detail(db, table, id) : null;
+  if (table === 'prompts' && old) {
+    if (!Number.isSafeInteger(body?.expected_version) || body.expected_version < 1)
+      throw new HttpError(400, 'Indica expected_version para editar el prompt.');
+    if (body.expected_version !== old.version)
+      throw new HttpError(409, 'El prompt cambió. Recarga su versión antes de guardar.');
+  }
   if (table === 'messages') {
     if (old && old.source !== 'manual')
       throw new HttpError(409, 'Los mensajes externos no se editan con el CRUD manual.');
@@ -336,7 +345,11 @@ export function save(db, table, body, id) {
           .get(data.pipeline_id, data.position).id;
       return detail(db, table, savedId);
     }
+    if (table === 'prompts') data.version = old ? old.version + 1 : 1;
     const savedId = writeRow(db, table, data, old);
+    if (table === 'prompts')
+      db.prepare('INSERT INTO prompt_versions SELECT id,version,name,description,content,active,?,updated_at FROM prompts WHERE id=?')
+        .run(actor, savedId);
     if (table === 'conversations' && old?.external_id)
       db.prepare('UPDATE conversations SET revision=revision+1 WHERE id=?').run(savedId);
     if (table === 'pipelines' && (!old || Object.hasOwn(body, 'stages')))

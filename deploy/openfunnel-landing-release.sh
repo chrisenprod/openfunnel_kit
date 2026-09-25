@@ -90,7 +90,8 @@ if [[ -f $LANDING_STATE_ROOT/deployed-sha ]]; then
   deployed_sha=$(cat "$LANDING_STATE_ROOT/deployed-sha")
   [[ $deployed_sha =~ ^[0-9a-f]{40}$ ]] || exit 66
   if git --git-dir="$repository" diff --quiet "$deployed_sha" "$release_sha" -- \
-    landing package.json package-lock.json .nvmrc deploy/openfunnel-landing-release.sh; then
+    landing package.json package-lock.json .nvmrc scripts/build-docs.js docs/site docs/api/AGENTES.md \
+    deploy/openfunnel-landing-release.sh; then
     health "$previous"
     printf 'Landing inputs unchanged; existing release kept.\n'
     exit 0

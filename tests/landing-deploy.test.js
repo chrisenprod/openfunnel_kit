@@ -84,4 +84,6 @@ test('landing rolls back after failed HTTPS validation and reports failure',asyn
 test('unchanged landing skips construction and publication',async t=>{
  const x=await run(t,'unchanged');assert.equal(x.result.status,0,x.result.stderr);assert.ok(x.current.endsWith(old));
  assert.equal(x.calls.some(c=>c[0]==='docker'&&c[1]==='run'),false);
+ const diff=x.calls.find(c=>c[0]==='git'&&c.includes('diff'));
+ assert.ok(diff.includes('docs/site')); assert.ok(diff.includes('docs/api/AGENTES.md')); assert.ok(diff.includes('scripts/build-docs.js'));
 });

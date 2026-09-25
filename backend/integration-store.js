@@ -1,3 +1,4 @@
+import { readyDocuments } from './documents.js';
 import { randomUUID } from 'node:crypto';
 import { transaction } from './migrate.js';
 import { conversationRecord, messageRecord, contract } from './zernio.js';
@@ -193,7 +194,7 @@ export function integrationStore(db) {
     if (!agent) return { channel, agent: null };
     const prompts = db
       .prepare(
-        'SELECT p.id,p.content,p.updated_at FROM agent_prompts a JOIN prompts p ON p.id=a.prompt_id WHERE a.ai_agent_id=? AND p.active=1 ORDER BY a.position',
+        'SELECT p.id,p.content,p.version,p.updated_at FROM agent_prompts a JOIN prompts p ON p.id=a.prompt_id WHERE a.ai_agent_id=? AND p.active=1 ORDER BY a.position',
       )
       .all(agent.id);
     const tools = db
@@ -201,9 +202,11 @@ export function integrationStore(db) {
         'SELECT t.* FROM agent_tools a JOIN tools t ON t.id=a.tool_id WHERE a.ai_agent_id=? AND t.active=1 ORDER BY t.id',
       )
       .all(agent.id);
+    const documents = readyDocuments(db, agent.id);
     return {
       channel,
       agent,
+      documents,
       prompts,
       tools,
       configHash: hash(
@@ -213,6 +216,7 @@ export function integrationStore(db) {
           agent,
           prompts,
           tools,
+          documents,
         ]),
       ),
     };

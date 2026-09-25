@@ -15,22 +15,29 @@
     "spec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict --no-interactive",
     "dev": "vite",
     "dev:landing": "vite --config landing/vite.config.js",
-    "build:landing": "vite build --config landing/vite.config.js",
+    "build:landing": "npm run build:docs && vite build --config landing/vite.config.js",
     "preview:landing": "vite preview --config landing/vite.config.js",
     "dev:backend": "node --watch --env-file-if-exists=.env backend/server.js",
-    "build": "vite build",
+    "build": "npm run build:docs && vite build",
     "preview": "vite preview",
-    "start": "node --env-file-if-exists=.env backend/server.js"
+    "start": "node --env-file-if-exists=.env backend/server.js",
+    "build:docs": "node scripts/build-docs.js",
+    "dev:docs": "npm run build:docs && vite dist/docs --host 127.0.0.1 --port 5175 --strictPort",
+    "predev": "npm run build:docs",
+    "predev:landing": "npm run build:docs"
   },
   "dependencies": {
     "better-auth": "1.7.5",
     "openai": "^7.23.0",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "word-extractor": "^1.0.4"
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.13.1",
     "@vitejs/plugin-react": "^6.1.1",
+    "marked": "^18.0.14",
     "vite": "^8.3.0"
   }
 }

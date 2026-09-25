@@ -130,22 +130,13 @@ export const resources = {
     label: 'Agentes IA',
     singular: 'agente IA',
     group: 'Configuración',
-    note: 'Configura instrucciones, valida el modelo y asigna el agente a un canal.',
+    note: 'Configura sus instrucciones, añade conocimiento y prueba sus respuestas.',
     title: 'name',
     search: ['name', 'description'],
     filters: ['active'],
     fields: [
       text('name', 'Nombre', true),
       area('description', 'Descripción'),
-      text('provider', 'Proveedor (azure, openai-compatible)'),
-      {
-        ...text('model', 'Deployment / modelo (vacío: predeterminado)'),
-        suggestions: [
-          ['gpt-5.6-sol', 'Sol 5.6'],
-          ['gpt-5.6-terra', 'Terra 5.6'],
-          ['gpt-5.6-luna', 'Luna 5.6'],
-        ],
-      },
       active,
     ],
   },
