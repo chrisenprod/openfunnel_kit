@@ -850,6 +850,14 @@ select[aria-invalid='true'] {
   padding: 10px;
   font-size: 12px;
 }
+.password-requirements {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.password-requirements .is-pending { color: var(--danger); }
+.password-requirements .is-met { color: var(--success); }
 .login-submit {
   width: 100%;
   justify-content: center;
@@ -1286,6 +1294,7 @@ dialog p {
 @media (max-width: 767px) {
   .module-navigation {
     gap: 0;
+    overflow-x: auto;
   }
   .module-link {
     flex: 1;
@@ -2005,3 +2014,90 @@ input[aria-invalid='true'], textarea[aria-invalid='true'], .select-trigger[aria-
 .channel-platforms { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 .channel-platforms .icon { width: 18px; height: 18px; }
 .channel-connections .integration-status { padding: 8px 0; font-size: 12px; margin-block: 0; }
+
+/* Shared connections and cloud account access use the existing form language. */
+.provider-connection { margin-bottom: 1.5rem; }
+.provider-connection form { max-width: 36rem; }
+.provider-connection .section-heading p { margin-bottom: 0; }
+.auth-links { margin: 1.25rem 0; flex-wrap: wrap; gap: 1rem; }
+.cloud-accounts-table { position: relative; }
+.cloud-accounts-table table { min-width: 0; }
+.cloud-accounts-table td { overflow-wrap: anywhere; }
+@media (max-width: 767px) {
+  .cloud-accounts-table td, .cloud-accounts-table th { padding: 10px 6px; font-size: 12px; }
+  .cloud-accounts-table .button { padding: 6px; min-height: 40px; font-size: 12px; }
+}
+.provider-connection .field { margin-bottom: 16px; }
+.provider-setup { border: 1px solid var(--border); border-radius: 8px; padding: 24px; }
+.zernio-brand-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.zernio-brand { display: inline-flex; padding: 20px; }
+.zernio-brand img { display: block; width: 114px; height: 24px; object-fit: contain; }
+.zernio-brand .zernio-logo-dark { display: none; }
+:root[data-theme='dark'] .zernio-brand .zernio-logo-light { display: none; }
+:root[data-theme='dark'] .zernio-brand .zernio-logo-dark { display: block; }
+.zernio-brand-row a { font-size: 13px; }
+.provider-setup .section-heading { gap: 24px; align-items: center; }
+.provider-setup .section-heading h2 { font-size: 18px; font-weight: 400; }
+.provider-setup .section-heading p { max-width: 58ch; margin-top: 8px; }
+.provider-setup .section-heading > .button { flex-shrink: 0; }
+.provider-setup form > fieldset > p { margin: 0 0 16px; }
+@media (max-width: 767px) {
+  .provider-setup { padding: 16px; }
+  .zernio-brand-row { gap: 8px; }
+  .zernio-brand { padding: 20px 0; }
+  .zernio-brand-row a { font-size: 12px; }
+  .provider-setup .section-heading { align-items: stretch; gap: 16px; }
+}
+.cloud-login form > fieldset > .button.primary { width: 100%; margin-top: 8px; }
+
+.llm-brand-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 0 0 24px; }
+.llm-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.llm-brand > .icon { width: 28px; height: 28px; color: var(--accent); }
+.llm-provider-links { display: flex; flex-wrap: wrap; gap: 16px; }
+.llm-provider-links a, .model-label a { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.llm-provider-links .icon, .model-label .icon { width: 14px; height: 14px; }
+.llm-presets { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.llm-presets .button { font-size: 13px; }
+.model-label { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.model-label label { margin: 0; }
+.llm-saved-model { display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; font-size: 13px; }
+.llm-saved-model span { min-width: 0; }
+.llm-saved-model .icon { flex-shrink: 0; }
+.llm-setup .field small { display: block; margin-top: 6px; }
+
+.zernio-brand-row > a, .llm-provider-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+}
+.zernio-brand-row > a:hover, .llm-provider-links a:hover { background: var(--surface); }
+.llm-provider-links .icon { width: 18px; height: 18px; }
+
+/* Billing uses the shared surfaces and keeps provider setup secondary. */
+.billing-plans { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 20px; max-width: 1040px; margin-block: 20px 32px; }
+.billing-plan { border: 1px solid var(--color-line); border-radius: 8px; padding: 24px; background: var(--paper); }
+.billing-plan h3 { font-size: 22px; font-weight: 400; margin: 0 0 12px; }
+.billing-price { font-size: 30px; letter-spacing: -.025em; margin-block: 12px 0; }
+.billing-price small { font-size: 14px; letter-spacing: normal; }
+.billing-check { display: flex; align-items: center; gap: 8px; }
+.billing-check input { width: auto; }
+.billing-balance { border: 1px solid var(--color-line); border-radius: 8px; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-block: 24px; }
+.billing-balance > div { display: flex; flex-direction: column; gap: 10px; }
+.billing-balance strong { font-size: 40px; font-weight: 400; line-height: 1.1; }
+.billing-balance b { font-weight: 500; }
+.billing-balance progress { width: 100%; grid-column: 1/-1; height: 8px; accent-color: var(--color-accent); }
+.billing-help { margin-block: 24px; border-top: 1px solid var(--color-line); padding-top: 16px; }
+.billing-help summary { cursor: pointer; padding-block: 8px; }
+.billing-help p { max-width: 780px; }
+.billing-endpoint { display: block; overflow-wrap: anywhere; user-select: all; }
+.billing-history { margin-block: 32px; }
+.billing-pagination { margin-block: 16px; }
+@media (max-width: 600px) { .billing-balance { grid-template-columns: 1fr; padding: 18px; } .billing-plan { padding: 18px; } }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { readyDocuments } from './documents.js';
 import { HttpError, detail, save } from './resources.js';
 import { objectBody } from './api-keys.js';
@@ -51,19 +52,19 @@ export function createAgentTester(db, env, client) {
     const messages = [...agentMessages(instructions, documents), ...history, { role: 'user', content: body.message }];
     const names = [...new Set(db.prepare('SELECT t.kind FROM agent_tools a JOIN tools t ON t.id=a.tool_id WHERE a.ai_agent_id=? AND t.active=1').all(id)
       .map((t) => t.kind).filter((kind) => Object.hasOwn(toolRegistry, kind)))];
-    const contextHash = hash(JSON.stringify([agent, prompts, documents, names, instructions, llm.config.model]));
+    const contextHash = hash(JSON.stringify([agent, prompts, documents, names, instructions, llm.fingerprint(llm.config.model)]));
     if (history.length && body.context_hash !== contextHash)
       throw new HttpError(409, 'La configuración cambió. Reinicia la conversación de prueba.');
     if (running) throw new HttpError(409, 'Ya hay una prueba en curso. Espera a que termine.');
     running = true;
-    const started = Date.now(), tools = [];
+    const started = Date.now(), tools = [], billingId = randomUUID();
     let usage = null;
     const deadline = AbortSignal.timeout(60000);
     const combined = signal ? AbortSignal.any([signal, deadline]) : deadline;
     try {
       for (let round = 0; round < 3; round++) {
         combined.throwIfAborted();
-        const result = await llm.complete(llm.config.model, messages, names.map(functionTool), {}, { signal: combined });
+        const result = await llm.complete(llm.config.model, messages, names.map(functionTool), {}, { signal: combined }, {key:`test:${billingId}:llm:${round}`,source:'test'});
         combined.throwIfAborted();
         if (result.usage) {
           usage ||= { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
@@ -88,9 +89,10 @@ export function createAgentTester(db, env, client) {
               Object.keys(args).some((key) => name !== 'handoff_to_human' || key !== 'reason') ||
               (name === 'handoff_to_human' && (typeof args.reason !== 'string' || !args.reason.trim() || args.reason.length > 500)))
             throw new HttpError(409, 'Herramienta o argumentos no autorizados en la prueba.');
-          const output = name === 'handoff_to_human'
+          const executeTool = () => name === 'handoff_to_human'
             ? { simulated: true, handedOff: true }
             : { simulated: true, found: false, message: 'No real contact or ticket is available in this test.' };
+          const output = env.BILLING_METER ? env.BILLING_METER.runSync('tool',`test:${billingId}:tool:${tools.length}`,'test',executeTool) : executeTool();
           tools.push({ name, arguments: args, result: output, simulated: true });
           messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(output) });
         }

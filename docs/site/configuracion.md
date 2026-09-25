@@ -1,6 +1,6 @@
 # Configuración del servidor
 
-La configuración vive en `.env` o en las variables del proceso. `.env.example` documenta las opciones. Los secretos nunca deben llevar el prefijo `VITE_`, que los expondría al navegador. Reinicia la API después de cambiar el entorno.
+`npm run dev:backend` carga `.env.local`; `npm start` carga `.env` para producción. También se pueden inyectar variables del proceso. `.env.example` documenta las opciones. Mantén bases y secretos separados; los secretos nunca deben llevar el prefijo `VITE_`, que los expondría al navegador. Reinicia la API después de cambiar el entorno.
 
 ## Acceso y base de datos
 
@@ -14,7 +14,7 @@ La configuración vive en `.env` o en las variables del proceso. `.env.example` 
 | `PORT` | Puerto de la API, por defecto `3001`. |
 | `BETTER_AUTH_SECRET` | Opcional, al menos 32 caracteres. Si falta, se genera y conserva en SQLite. |
 
-Sin credenciales no hay acceso a recursos de negocio. Las sesiones vencen a las ocho horas; cambiar usuario o contraseña y reiniciar la API revoca las anteriores. No hay registro público ni cuentas de login en el directorio de Usuarios.
+En el modo predeterminado `self-hosted`, sin credenciales no hay acceso a recursos de negocio. Las sesiones vencen a las ocho horas; cambiar usuario o contraseña y reiniciar la API revoca las anteriores. El directorio de Usuarios no concede login. Para registro por correo y espacios independientes, consulta [Cuentas y conexiones](./cuentas.html).
 
 `APP_ORIGIN` incluye protocolo y puerto, sin ruta: `http://localhost:5173` y `http://127.0.0.1:5173` son orígenes diferentes. En producción usa el origen HTTPS público.
 
@@ -26,11 +26,11 @@ Sin credenciales no hay acceso a recursos de negocio. Las sesiones vencen a las 
 | `LLM_API_KEY` | Credencial del proveedor. Solo backend. |
 | `LLM_MODEL` | Modelo o nombre exacto del deployment. |
 
-Todos los agentes usan esta configuración. **No hay selector ni campos de proveedor/modelo en el formulario del agente.** Los valores antiguos almacenados por agente no cambian el modelo del servidor.
+Todos los agentes del espacio comparten una conexión. **No hay selector ni campos de proveedor/modelo en el formulario del agente.** En self-hosted, el entorno tiene prioridad y los valores ausentes se completan desde Agentes IA → Conexión IA. En cloud, cada espacio guarda sus propias credenciales cifradas. Los valores antiguos almacenados por agente no cambian la conexión.
 
 Para Azure usa su endpoint v1, por ejemplo `https://TU_RECURSO.openai.azure.com/openai/v1/`, y el nombre del deployment en `LLM_MODEL`. Para otro proveedor usa su URL compatible; debe soportar Chat Completions y llamadas a herramientas. La app no transmite respuestas en streaming.
 
-En **Agentes IA → agente → Configuración → Comprobar conexión** verifica texto y herramientas. La comprobación llama al proveedor y puede consumir tokens. La prueba aislada también consume tokens, aunque no exige activar el agente ni validar antes la operación automática.
+Al editar un agente, **Comprobar conexión** verifica texto y herramientas. La comprobación llama al proveedor y puede consumir tokens. La prueba aislada también consume tokens, aunque no exige activar el agente ni validar antes la operación automática.
 
 ## Canales Zernio
 

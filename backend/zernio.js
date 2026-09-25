@@ -94,6 +94,9 @@ export function messageRecord(raw, channel, conversation) {
 }
 export function createZernio(env, request = fetch) {
   return async function zernio(path, { method = 'GET', body, query = {}, idempotencyKey } = {}) {
+    if (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE()) throw new HttpError(403, 'Cuenta suspendida.');
+    const key = env.ZERNIO_API_KEY;
+    const version = env.ZERNIO_CONNECTION_VERSION;
     if (!env.ZERNIO_API_KEY) throw new HttpError(503, 'Configura ZERNIO_API_KEY en el servidor.');
     const url = new URL(`https://zernio.com/api/v1${path}`);
     for (const [key, value] of Object.entries(query))
@@ -105,7 +108,7 @@ export function createZernio(env, request = fetch) {
         redirect: 'error',
         signal: AbortSignal.timeout(20000),
         headers: {
-          Authorization: `Bearer ${env.ZERNIO_API_KEY}`,
+          Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
           ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
         },
@@ -123,6 +126,7 @@ export function createZernio(env, request = fetch) {
     if (!response.ok || data?.success === false)
       throw new ProviderError(response.status, data?.code, response.headers.get('retry-after'));
     contract(data && typeof data === 'object' && !Array.isArray(data));
+    if (key !== env.ZERNIO_API_KEY || version !== env.ZERNIO_CONNECTION_VERSION || (env.INTEGRATION_ACTIVE && !env.INTEGRATION_ACTIVE())) throw new HttpError(409, 'La conexión cambió durante la operación.');
     return data;
   };
 }

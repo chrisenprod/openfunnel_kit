@@ -16,7 +16,7 @@ const keep = process.argv.includes('--keep');
 const cliEnv = { ...process.env };
 // Keep Docker connectivity settings, but never inherit application settings.
 for (const key of Object.keys(cliEnv))
-  if (/^COMPOSE_|^DOCKER_(APP_|ADMIN_|HTTP_|BETTER_|ZERNIO_|PUBLIC_|LLM_)/.test(key)) delete cliEnv[key];
+  if (/^COMPOSE_|^DOCKER_(APP_|ADMIN_|HTTP_|BETTER_|ZERNIO_|PUBLIC_|LLM_|CLOUD_|PROVIDER_|RESEND_|POLAR_|BILLING_)/.test(key)) delete cliEnv[key];
 const run = async (args, { logOutput = false, combineOutput = false, ...options } = {}) => {
   const operation = args[0] === 'compose' ? `compose ${args[5]}` : args[0];
   console.log(`Docker command: ${operation}`);
@@ -75,10 +75,14 @@ try {
   console.log('Docker: checking isolated configuration and building images…');
   const missing = join(directory, 'missing.env');
   await writeFile(missing, config.replace(/^DOCKER_ADMIN_PASS=.*\n/m, ''), { mode: 0o600 });
-  await assert.rejects(run(['compose', '--env-file', missing, '-p', project, 'config', '--quiet']));
+  // Admin credentials are conditional on APP_MODE; the API denies self-hosted login when absent.
+  await run(['compose', '--env-file', missing, '-p', project, 'config', '--quiet']);
   const resolved = JSON.parse(await compose('config', '--format', 'json'));
   assert.equal(resolved.services.api.environment.ZERNIO_API_KEY, '');
   assert.equal(resolved.services.api.environment.LLM_API_KEY, '');
+  assert.equal(resolved.services.api.environment.POLAR_TOKEN, '');
+  assert.equal(resolved.services.api.environment.POLAR_WEBHOOK_SECRET, '');
+  assert.equal(String(resolved.services.api.environment.BILLING_ENABLED), 'false');
   assert.equal(resolved.services.api.environment.DATABASE_PATH, '/app/data/app.sqlite');
   assert.equal(resolved.services.api.ports, undefined);
   assert.equal(resolved.services.web.ports[0].host_ip, '127.0.0.1');
@@ -220,6 +224,18 @@ try {
   await compose('up', '-d', '--wait', '--wait-timeout', '90');
   await health();
   assert.equal((await compose('ps', '-q', 'api')).split('\n').length, 1);
+  console.log('Docker: checking explicit cloud mode with synthetic configuration…');
+  await writeFile(envFile, config + `DOCKER_APP_MODE=cloud\nDOCKER_CLOUD_OWNER_EMAIL=owner@example.com\nDOCKER_BETTER_AUTH_SECRET=${randomBytes(32).toString('hex')}\nDOCKER_PROVIDER_ENCRYPTION_KEY=${randomBytes(32).toString('hex')}\nDOCKER_RESEND_API_KEY=synthetic-unused\nDOCKER_RESEND_FROM=test@example.com\n`, { mode: 0o600 });
+  await compose('up', '-d', '--wait', '--wait-timeout', '90', '--force-recreate', 'api');
+  cookie = '';
+  await health();
+  assert.equal((await (await request('/api/public-config')).json()).mode, 'cloud');
+  assert.equal((await request('/api/session')).status, 401);
+  assert.equal((await request('/api/login', 'POST', { username: 'container-test', password })).status, 400);
+  const cloudUsers = await compose('exec', '-T', 'api', 'node', '--input-type=module', '-e',
+    "import {DatabaseSync} from 'node:sqlite';const db=new DatabaseSync('/app/data/cloud/control.sqlite',{readOnly:true});console.log(db.prepare('SELECT count(*) AS n FROM auth_user').get().n);db.close();");
+  assert.equal(cloudUsers, '0');
+  assert.equal((await sql('SELECT name FROM contacts')) !== '[]', true, 'Legacy database remains intact');
   success = true;
   console.log(`Docker: all checks passed. ${base}`);
   if (keep) console.log(`Kept synthetic installation: project=${project}, envFile=${envFile}`);

@@ -202,7 +202,7 @@ test('Persistencia y rotación: una identidad, hash y sesiones revocadas', async
   );
   assert.equal(
     c.db.prepare('SELECT count(*) n FROM schema_migrations').get().n,
-    6,
+    9,
   );
 });
 test('CRUD: validación, filtros, paginación y límites', async (t) => {

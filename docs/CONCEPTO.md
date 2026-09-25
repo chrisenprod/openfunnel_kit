@@ -3,7 +3,7 @@
 <img src="../landing/assets/images/openfunnel-mark.webp" alt="Símbolo de OpenFunnel: seis burbujas de conversación forman un asterisco alrededor de un centro abierto" width="96" height="96">
 
 Estado: dirección de producto definida; base manual, integraciones y motor conversacional implementados, con verificación real parcial. La rama de desarrollo añade acceso acotado por API keys, contexto, versiones de prompts y pruebas aisladas; no está desplegado. La oferta cloud, los procesos automáticos y la entrega a sistemas externos siguen pendientes.
-Actualizado: 2026-09-24.
+Actualizado: 2026-09-25.
 
 ## Qué es
 
@@ -15,7 +15,7 @@ Una empresa puede usarlo solamente para recibir, procesar y responder conversaci
 
 OpenFunnel administra la conversación, su contexto y su procesamiento. El CRM externo puede seguir siendo la fuente de verdad comercial; el sistema de pedidos conserva las órdenes y el sistema de soporte conserva sus casos. El cliente no necesita migrar esos sistemas para usar el motor.
 
-La dirección comercial es un **microSaaS de uso flexible**, con un núcleo abierto autohospedable y una oferta cloud administrada orientada al pago por uso.
+La dirección comercial es un **microSaaS de uso flexible**, con un núcleo abierto autohospedable y una oferta cloud administrada. La oferta cloud usa suscripciones mensuales con créditos de procesamiento.
 
 ## Enfoque del producto
 
@@ -181,22 +181,22 @@ El núcleo conversacional, la interfaz y las capacidades de API y MCP se mantend
 | API y MCP | Incluidos cuando se implementen | Disponibles según límites de consumo |
 | Infraestructura | La instala y paga el usuario | Administrada por OpenFunnel |
 | Actualizaciones y respaldos | Los gestiona el usuario | Servicio administrado según la oferta |
-| Proveedores de IA y canales | Configuración y costes del usuario | Claves propias o consumo administrado, por definir |
-| Cobro de OpenFunnel | Sin tarifa de uso del núcleo autohospedado | Objetivo: pago por uso |
+| Proveedores de IA y canales | Configuración y costes del usuario | Claves propias; el cliente paga directamente a Zernio y su proveedor LLM |
+| Cobro de OpenFunnel | Sin tarifa de uso del núcleo autohospedado | Suscripción mensual con créditos incluidos |
 
 El alojamiento propio puede tener costes de servidores, modelos y canales aunque el software sea gratuito.
 
-La infraestructura comercial del cloud —aprovisionamiento de cuentas, facturación y operación del servicio— puede ser privada. Incorporar AI agents no implica cerrar el motor ni reservar API/MCP exclusivamente al cloud.
+El registro con Better Auth, la verificación con Resend, la administración del dueño y las conexiones cifradas forman parte del núcleo abierto según se implementen. Cada instalación podrá configurar a su superadmin mediante `CLOUD_OWNER_EMAIL`; no hay un dueño global codificado. La infraestructura privada del cloud oficial se mantiene separada. Incorporar AI agents no implica cerrar el motor ni reservar API/MCP exclusivamente al cloud.
 
 Chris Lobarede Fernández mantiene el repositorio oficial, su dirección de producto, la landing y el servicio cloud que opera. La landing comercial y los recursos de identidad quedan fuera de Apache-2.0, con permisos limitados para copia del repositorio, desarrollo y presentación de la versión oficial. El nombre no se concede como identidad para productos de terceros y su disponibilidad jurídica sigue pendiente de revisión.
 
 **Este control no implica exclusividad sobre los servicios basados en el motor:** Apache-2.0 permite forks, aplicaciones comerciales y clouds de terceros. La formación y el acompañamiento son ofertas separadas; los alumnos pueden construir y comercializar sus aplicaciones con identidad propia. El cloud oficial necesitará condiciones de servicio y privacidad antes de su lanzamiento.
 
-## MicroSaaS y pago por uso
+## MicroSaaS y modelo de cobro
 
-**Objetivo: pagar por el uso del motor, con una oferta comprensible para usos ocasionales.** La aspiración es operar sin una suscripción fija obligatoria; su viabilidad y las tarifas están pendientes de validación.
+**Objetivo: una oferta administrada comprensible, con costes previsibles.** Suscripción mensual con créditos incluidos, sin acumulación ni cargos automáticos por sobreconsumo.
 
-**Hipótesis comercial inicial: saldo para procesamiento, con historial y almacenamiento básico incluidos bajo límites explícitos.** Es una propuesta a validar, no una tarifa definida ni una rentabilidad demostrada. El valor que se cobra es procesar y operar conversaciones; guardar prospectos no es el centro de la oferta.
+La suscripción incluye un cupo de créditos: una llamada al modelo o una herramienta ejecutada consume un crédito. En esta entrega, cada cliente conecta sus claves de Zernio y LLM y paga directamente esos proveedores; el cobro de OpenFunnel corresponderá al servicio de la aplicación. La reventa de modelos, comisiones sobre Azure/Zernio y un portal de costes quedan fuera del alcance actual.
 
 La medición interna y la unidad comercial son decisiones distintas. Desde el primer recorrido se medirán llamadas al modelo, tokens, ejecuciones de herramientas y almacenamiento para conocer el coste real. Esto no obliga a facturar cada componente por separado al cliente.
 
@@ -209,7 +209,7 @@ Antes de lanzar el cobro se debe concretar:
 - Qué sucede con ejecuciones fallidas, reintentos y eventos duplicados; evitar doble cobro por un mismo evento repetido.
 - Medición verificable, historial de consumo, límites de gasto y alertas; límites de ejecución que eviten consumo ilimitado por una tarea.
 - Retención, exportación y eliminación de datos, incluidos los periodos sin actividad.
-- Validar la hipótesis de saldo para procesamiento frente a otras modalidades, los costes de operación y soporte, y la viabilidad de operar sin mínimo mensual.
+- Validar los límites comerciales, los costes de operación y soporte y el recorrido de pagos con Polar.
 
 ## Secuencia de construcción
 
@@ -248,13 +248,20 @@ Pendiente:
 - Elegir una entrada inicial: API o un canal concreto; WhatsApp sigue siendo un ejemplo. La segunda entrada puede añadirse después.
 - Definir el primer proveedor de IA y el contrato de resultados.
 - Especificar permisos, aprobaciones, retención y recuperación de entregas fallidas.
-- Validar costes y unidad de pago por uso antes de fijar precios.
+- Validar costes y cupos de las suscripciones con créditos antes de publicar cada oferta.
 - Mantener separado el código operativo privado del cloud y preparar sus condiciones de servicio y privacidad antes del lanzamiento.
 - Investigar alternativas y verificar disponibilidad de nombre y dominio.
 
 La comunicación y la landing deben presentar Sales, Support y Commerce como plantillas o ejemplos de pipelines del motor conversacional, distinguiendo la primera plantilla a implementar de las capacidades futuras. La bandeja y el pipeline permiten supervisar conversaciones; las integraciones conectan con los sistemas de negocio.
 
-La cuarta etapa conserva una experiencia mínima y completa: archivos originales y
+La preparación de agentes conserva una experiencia mínima y completa: archivos originales y
 texto extraído recuperables desde el agente, chat de prueba temporal y documentación
 pública de instalación, operación y API. Modelo/proveedor se configuran en el entorno.
 El conocimiento se incluye en cada llamada; no introduce RAG ni un buscador adicional.
+
+La **cuarta etapa, microSaaS**, sigue el orden correos con Resend, usuarios y
+superadmin con Better Auth, aislamiento multicuenta y conexiones propias, y pagos.
+Las conexiones podrán configurarse desde Canales y Agentes; el modo autohospedado
+no solicitará campos ya definidos en el entorno. Alcance y aceptación en el
+[PRD §14](PRD.md#14-cuarta-etapa-microsaas-con-cuentas-y-conexiones-propias) y seguimiento
+en el [checklist microSaaS](checklists/CHECKLIST-MICROSAAS.md).

@@ -5,6 +5,7 @@ import { openDatabase } from '../backend/db.js';
 import { createIntegrations } from '../backend/integrations.js';
 import { save, remove } from '../backend/resources.js';
 import { createLLM } from '../backend/llm.js';
+import { createBilling } from '../backend/billing.js';
 import { createApp } from '../backend/server.js';
 import { once } from 'node:events';
 const env = {
@@ -16,7 +17,7 @@ const env = {
   LLM_MODEL: 'test-deployment',
 };
 const stamp = () => new Date().toISOString();
-function fixture(t, { platform = 'instagram', sendMode = 'ok', complete } = {}) {
+function fixture(t, { platform = 'instagram', sendMode = 'ok', complete, active, billingMeter } = {}) {
   const db = openDatabase(':memory:');
   let serial = 0;
   const account = {
@@ -123,7 +124,7 @@ function fixture(t, { platform = 'instagram', sendMode = 'ok', complete } = {}) 
       },
     },
   };
-  const i = createIntegrations(db, env, { fetch: fetcher, llmClient: client });
+  const i = createIntegrations(db, { ...env, BILLING_METER: billingMeter, ...(active ? { INTEGRATION_ACTIVE: active } : {}) }, { fetch: fetcher, llmClient: client });
   t.after(async () => {
     await i.stop();
     db.close();
@@ -756,3 +757,49 @@ for (const field of ['prompt', 'document']) {
     assert.equal(a.requests.filter((r) => r.method === 'POST' && r.path.endsWith('/messages')).length, 0);
   });
 }
+
+test('Cloud suspension during model execution prevents tools and delivery', async t => {
+  let active=true, live=false, release, started;
+  const waiting=new Promise(resolve=>started=resolve);
+  const a=fixture(t,{active:()=>active,complete:async input=>{
+    if(input.tool_choice) return {choices:[{finish_reason:'tool_calls',message:{role:'assistant',tool_calls:[{id:'probe',type:'function',function:{name:'connection_probe',arguments:'{}'}}]}}]};
+    if(live){started();await new Promise(resolve=>release=resolve);}
+    return {choices:[{finish_reason:'stop',message:{role:'assistant',content:'Pending reply'}}]};
+  }});
+  await a.setup();await a.agent();live=true;
+  a.receive(a.incoming());const processing=a.i.tick();await waiting;
+  active=false;release();await processing;
+  assert.equal(a.get('outbound_messages').length,0);
+  assert.equal(a.remote.length,0);
+  const count=a.requests.length;await a.i.tick();assert.equal(a.requests.length,count);
+});
+
+
+test('Worker reserves actual credits for model and tools and stops before a call when exhausted', async t => {
+  for (const allowance of [5,6]) {
+    const control = openDatabase(':memory:');
+    t.after(()=>control.close());
+    const start=new Date(Date.now()-1000).toISOString(),end=new Date(Date.now()+86400000).toISOString();
+    control.prepare('INSERT INTO auth_user(id,name,email,emailVerified,createdAt,updatedAt) VALUES (?,?,?,1,?,?)').run('billing-user','Test','test@example.com',start,start);
+    control.prepare("INSERT INTO cloud_accounts VALUES ('billing-user','space','client','active',?)").run(start);
+    control.prepare("INSERT INTO billing_subscriptions VALUES ('production','sub','space','customer','product','active',?,?,0,?)").run(start,end,start);
+    control.prepare("INSERT INTO billing_periods VALUES ('period','production','space','sub','order','product',?,?,?,0,?)").run(start,end,allowance,start);
+    const billing=createBilling(control,{BILLING_ENABLED:'true'});
+    let calls=0;
+    const a=fixture(t,{billingMeter:billing.meter('space'),complete:async input=>{
+      if(input.tool_choice) return {choices:[{finish_reason:'tool_calls',message:{tool_calls:[{id:'probe',function:{name:'connection_probe',arguments:'{}'}}]}}]};
+      if(input.messages.at(-1).role==='tool') return {choices:[{finish_reason:'stop',message:{content:'OK'}}]};
+      calls++;
+      return {choices:[{finish_reason:'tool_calls',message:{tool_calls:[{id:'contact',function:{name:'get_contact',arguments:'{}'}}]}}]};
+    }});
+    await a.setup();const agent=await a.agent();
+    const tool=save(a.db,'tools',{name:'Contact',description:'Read current contact',kind:'get_contact',active:true});
+    save(a.db,'ai_agents',{tool_ids:[tool.id]},agent.id);
+    a.receive(a.incoming());await a.i.tick();
+    assert.equal(a.get('tool_runs')[0].status,'completed');
+    assert.equal(billing.summary('space').period.consumed,allowance);
+    assert.equal(a.get('outbound_messages').length,allowance===6?1:0);
+    if(allowance===5) assert.match(a.get('agent_runs')[0].error,/créditos/);
+    assert.equal(calls,1);
+  }
+});

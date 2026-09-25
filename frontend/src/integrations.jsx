@@ -90,7 +90,7 @@ export function ChannelConnections({ refresh, version }) {
         <div>
           <p className="channel-platforms"><ChannelIcon kind="instagram" /><ChannelIcon kind="whatsapp" /><span>Instagram y WhatsApp</span></p>
         </div>
-        <div className="inline-actions">
+        {state.data?.zernio.configured && <div className="inline-actions">
           <button
             className="button secondary"
             disabled={a.busy || !state.data?.zernio.configured}
@@ -110,17 +110,12 @@ export function ChannelConnections({ refresh, version }) {
           >
             {connecting ? 'Cerrar conexión' : 'Conectar canal'}
           </button>
-        </div>
+        </div>}
       </div>
       {a.feedback}
       <LoadState state={state}>
         {state.data && (
           <>
-            {!state.data.zernio.configured && (
-              <p className="muted">
-                Configura ZERNIO_API_KEY en el servidor para conectar tus cuentas.
-              </p>
-            )}
             {state.data.zernio.configured && (
               <div className="integration-status">
                 <span>
@@ -147,7 +142,7 @@ export function ChannelConnections({ refresh, version }) {
                 </details>
               </div>
             )}
-            {!state.data.zernio.webhookConfigured && (
+            {state.data.zernio.configured && !state.data.zernio.webhookConfigured && (
               <p className="muted">
                 La recepción en tiempo real requiere URL pública HTTPS y secreto del webhook
                 configurados en el servidor.
@@ -552,7 +547,7 @@ export function AgentIntegration({ id, version, refresh }) {
       <div className="section-heading">
         <div>
           <h2>Conexión IA</h2>
-          <p className="muted">La conexión se configura en el servidor.</p>
+          <p className="muted">Conexión compartida por los agentes de este espacio. <a href="#/ai_agents">Gestionar conexión</a></p>
         </div>
         <button
           className="button secondary"
@@ -571,10 +566,11 @@ export function AgentIntegration({ id, version, refresh }) {
       <LoadState state={state}>
         {state.data && (
           <>
+            <p className="muted">La comprobación usa dos llamadas al modelo y una herramienta de prueba: 3 créditos si la facturación está activa.</p>
             <p>{state.data.validated ? 'Conexión comprobada' : 'Comprobación pendiente'}</p>
             {!state.data.configured && (
               <p className="muted">
-                Completa la configuración de IA del servidor. Consulta la documentación.
+                Completa la conexión IA desde el listado de agentes.
               </p>
             )}
             {state.data.tools.map((t) => (

@@ -17,6 +17,7 @@ repositorio se ofrece bajo [Apache License 2.0](LICENSE), con estas excepciones:
 | `landing/brand.css` y `landing/vite.config.js` | Apache-2.0; el CSS no licencia la imagen a la que hace referencia |
 | Resto de `landing/`, incluido HTML, CSS, JavaScript, textos e imágenes | Derechos reservados, con los permisos limitados descritos abajo; ver [landing/LICENSE](landing/LICENSE) |
 | `assets/`, incluido el banner y su prompt | Derechos reservados, con los permisos limitados descritos abajo; ver [assets/LICENSE](assets/LICENSE) |
+| `frontend/src/assets/zernio/` | Logos oficiales de terceros; ver [aviso de Zernio](frontend/src/assets/zernio/NOTICE.md) |
 | Dependencias y materiales de terceros | Sus propias licencias y avisos |
 
 Incrustar una imagen reservada en un documento o en la aplicación, o incluirla en
@@ -100,9 +101,13 @@ cloud —aprovisionamiento, facturación y operación— debe mantenerse separad
 código abierto y contar con avisos explícitos si llega a distribuirse. Una mención
 al cloud no convierte automáticamente en privado código publicado bajo Apache-2.0.
 
-OpenFunnel Cloud es la oferta administrada del mantenedor. Su contratación,
-consumo, soporte y tratamiento de datos requieren condiciones de servicio y
-privacidad propias antes del lanzamiento. La licencia del código no las sustituye.
+OpenFunnel Cloud es la oferta administrada por MOCCA IA SpA. Su contratación,
+consumo, soporte y tratamiento de datos se describen en los
+[Términos de servicio](docs/site/terminos.md) y la
+[Política de privacidad](docs/site/privacidad.md). Antes de abrir el registro público
+deben completarse los datos de operación pendientes indicados en esas páginas.
+La licencia del código no sustituye estas condiciones; las instalaciones de terceros
+deben identificar a su propio operador y publicar sus propias políticas.
 **Apache-2.0 permite que terceros ofrezcan servicios comerciales basados en el
 código; no concede exclusividad de alojamiento al cloud oficial.**
 

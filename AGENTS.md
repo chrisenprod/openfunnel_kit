@@ -9,7 +9,7 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 - Frontend: React + Vite en `frontend/`, JavaScript y CSS.
 - Backend: Node.js con `node:http` en `backend/`.
 - Persistencia: SQLite mediante `node:sqlite`; conexión en `backend/db.js`, sin ORM.
-- Better Auth 1.7.5 integrado con SQLite nativo. Acceso single user con `admin_user` y `admin_pass` de servidor; el CRUD de users es un directorio sin login. No exponer el handler general de Better Auth ni habilitar registro público.
+- Better Auth 1.7.5 integrado con SQLite nativo. Self-hosted conserva `admin_user`/`admin_pass`; `APP_MODE=cloud` añade cuentas verificadas con Resend y una SQLite por espacio. El CRUD de users sigue como directorio sin login. No exponer el handler general de Better Auth. El registro público requiere modo cloud explícito, dueño y secretos configurados; no activar producción sin revisar aislamiento y migración.
 - Usar módulos ES y npm con un único `package.json` y `package-lock.json` en la raíz.
 - Requiere Node.js >=24.13.0; `.nvmrc` selecciona la rama 24. `node:sqlite` emite una advertencia experimental en Node 24.13.
 - No añadir TypeScript, frameworks de servidor ni otras capas sin una necesidad concreta.
@@ -19,7 +19,7 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 
 - Ejecutar todos los comandos desde la raíz.
 - Instalar dependencias con `npm install`; usar `npm ci` para reproducir el lockfile.
-- Ejecutar `npm run dev:backend` y `npm run dev` en terminales separadas.
+- Ejecutar `npm run dev:backend` y `npm run dev` en terminales separadas. El backend de desarrollo carga solo `.env.local`; `npm start` carga `.env` de producción. No iniciar desarrollo con bases o secretos productivos.
 - La landing definitiva vive en `landing/`: HTML y CSS en la raíz, imágenes de producción en `landing/assets/images/` y conectores SVG. Comprimir las ilustraciones a WebP conservando la transparencia; mantener etiquetas en HTML. La estructura partió de la propuesta v2; la dirección visual vigente es Campo de tinta: hero de acuarela original, tipografía regular y diagramas HTML/SVG sin halos. La adaptación visual a la app está en `docs/DESIGN_SYSTEM.md`; los prompts y antecedentes locales se conservan en `docs/referencias-visuales/`, ignorado por Git. Los recursos de diseño temporales fueron eliminados; no versionar propuestas descartadas, galerías ni originales pesados regenerables. Conservar las imágenes WebP utilizadas por la landing. El proceso y los prompts reutilizables están en `docs/checklists/CHECKLIST-PROYECTO.md`. Usar `npm run dev:landing` (5174), `npm run build:landing` (salida `dist/landing/`) y `npm run preview:landing` (4174). No requiere backend. Añadir JavaScript solo cuando la interacción lo necesite. Revisar escritorio, móvil y navegación por teclado.
 - El frontend usa el puerto 5173; el backend usa `PORT` o 3001. Vite redirige `/api` al backend.
 - Publicación de la landing: seguir `docs/deploy/DESPLIEGUE-LANDING.md`. La base relativa de Vite permite servir `dist/landing/` en la raíz o en una subruta. GitHub Pages usa el workflow manual `.github/workflows/deploy-landing.yml`; Vercel usa `vercel.json` desde la raíz del repositorio. El VPS sirve https://openfunnel.mocca.cl con Nginx (`deploy/openfunnel.nginx.conf`), desde `/var/www/openfunnel/current`; el repositorio completo está en `/srv/openfunnel_kit`, fuera del directorio público. Caddy queda como alternativa en `deploy/Caddyfile.example`. Actions permite publicar la landing en VPS tras CI; seguir `docs/deploy/LANDING-VPS-ACTIONS.md`. Conservar Pages y Vercel como alternativas del curso. No usar `vite preview` como servidor de producción ni exponer el repositorio completo por HTTP.
@@ -38,11 +38,13 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 
 ## Integraciones
 
-- Cuarta etapa minimalista: `agent-workbench` añade API keys (scopes de lectura, prompts y pruebas), documentos de conocimiento, documentación pública y versiones/restauración de prompts. Ver `docs/api/AGENTES.md`. PATCH de prompts exige `expected_version`; no omitir el control de concurrencia. Las pruebas del agente simulan todas las tools y no escriben mensajes ni ejecutan efectos operativos. Gestión de claves solo por sesión, sin mezclar cookie y Bearer.
+- Preparación de agentes: `agent-workbench` añade API keys (scopes de lectura, prompts y pruebas), documentos de conocimiento, documentación pública y versiones/restauración de prompts. Ver `docs/api/AGENTES.md`. PATCH de prompts exige `expected_version`; no omitir el control de concurrencia. Las pruebas del agente simulan todas las tools y no escriben mensajes ni ejecutan efectos operativos. Gestión de claves solo por sesión, sin mezclar cookie y Bearer.
 
 - Zernio se traduce al modelo local en `backend/zernio.js` e `integration-store.js`; `integrations.js` coordina sincronización, webhooks y procesamiento. No exponer el JSON remoto como contrato de UI.
-- Documentos de agentes: originales BLOB y texto en SQLite (migración 006); TXT/MD UTF-8, DOC/DOCX con word-extractor y PDF con pdfjs-dist. Extraer en worker limitado, no OCR ni RAG; texto disponible en cada llamada. Provider/model legacy no son editables; usar solo entorno.
+- Documentos de agentes: originales BLOB y texto en SQLite (migración 006); TXT/MD UTF-8, DOC/DOCX con word-extractor y PDF con pdfjs-dist. Extraer en worker limitado, no OCR ni RAG; texto disponible en cada llamada. Provider/model legacy no son editables: conexión compartida por espacio, con prioridad de entorno en self-hosted y claves propias cifradas en cloud.
+- Cuentas cloud: `backend/cloud-server.js` despacha sesiones y API keys al espacio autorizado; nunca aceptar un workspace del navegador para cambiar una sesión. `CLOUD_OWNER_EMAIL` asigna al dueño tras verificar su correo. `PROVIDER_ENCRYPTION_KEY` queda fuera de SQLite. Ver `docs/site/cuentas.md` para Resend, hosts LLM, respaldos y traslado offline; un único proceso API para todo el directorio cloud.
 - Docs públicas: fuentes explícitas en `docs/site/` y `docs/api/AGENTES.md`; `npm run build:docs` genera `dist/docs` y `/docs/` de app/landing. `npm run dev:docs` usa 5175. Build/dev de app y landing incluyen docs; nunca publicar todo docs ni archivos privados.
+- Páginas legales públicas: `docs/site/terminos.md` y `docs/site/privacidad.md`, generadas en `/docs/terminos.html` y `/docs/privacidad.html`. Distinguir el cloud oficial operado por MOCCA IA SpA del código Apache-2.0 y las instalaciones de terceros, que tienen su propio operador. No trasladar garantías, proveedores o plazos de otro producto sin comprobarlos; completar los pendientes de alojamiento y conservación antes de abrir el registro público. Añadir Polar.sh al checklist del curso no implementa ni activa pagos.
 - SDK oficial `openai` en `backend/llm.js`, Chat Completions sin streaming; entorno canónico `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`. Azure utiliza endpoint v1 y nombre de deployment. Nunca registrar secretos ni respuestas crudas de errores del proveedor.
 - Zernio usa `ZERNIO_API_KEY`; conexión/webhook requieren `PUBLIC_BASE_URL` y `ZERNIO_WEBHOOK_SECRET`. Ver `docs/deploy/INTEGRACIONES.md`. No activar canales operativos ni enviar mensajes de prueba a terceros sin autorización específica.
 - Un único backend/worker por SQLite. Cola, runs y eventos son persistidos; no reintentar envíos inciertos a ciegas. Conservar control humano y revisión antes del envío.
@@ -53,7 +55,8 @@ Mantener el proyecto lo más simple posible. Añadir estructura, frameworks, dep
 - Mantener solo `CONCEPTO.md`, `PRD.md`, `DESIGN_SYSTEM.md` y `ARCHITECTURE.md` en la raíz de `docs/`. Organizar el resto en subcarpetas como `docs/checklists/` y `docs/deploy/`. Los antecedentes de acuarela, ilustraciones y logo viven en `docs/referencias-visuales/`, ignorado por Git.
 - Seguir `docs/DESIGN_SYSTEM.md` para la UI y `docs/ARCHITECTURE.md` para la base técnica. Los documentos locales ignorados no deben ser necesarios para implementar ni para usar un clon.
 
-- `docs/CONCEPTO.md` define la dirección de producto; `docs/PRD.md` conserva la primera etapa, define canales Zernio/IA en la segunda y planifica infraestructura y producción en la tercera. Los checklists del MVP y de infraestructura/producción en `docs/checklists/` son plantillas reutilizables, no un roadmap de OpenFunnel. Concretar las decisiones del PRD en OpenSpec antes de implementar; el despliegue existente de la landing no demuestra que la app esté en producción.
+- `docs/CONCEPTO.md` define la dirección de producto; `docs/PRD.md` conserva la primera etapa, define canales Zernio/IA en la segunda y planifica infraestructura y producción en la tercera. Todos los checklists de `docs/checklists/`, incluido microSaaS, son plantillas reutilizables para el curso y otras aplicaciones, no un roadmap ni un registro de implementación de OpenFunnel. Mantener sus casillas vacías y el seguimiento del proyecto en OpenSpec y registros de QA. Concretar las decisiones del PRD en OpenSpec antes de implementar; el despliegue existente de la landing no demuestra que la app esté en producción.
+- La cuarta etapa es microSaaS (PRD §14): Resend, usuarios/superadmin, multicuenta y pagos. `docs/checklists/CHECKLIST-MICROSAAS.md` es una guía genérica; `cloud-accounts-and-provider-keys` define cuentas y conexiones, y `polar-admin-portal` define suscripciones con créditos configurables. `CLOUD_OWNER_EMAIL` designa al dueño verificado de cada instancia. La activación cloud requiere aislamiento, respaldos y entorno verificados; conservar la base anterior sin asignarla al primer registro.
 - OpenSpec 1.13.1 es una dependencia de desarrollo local. Usar `npm run openspec -- <comando>` desde la raíz con Node.js >=24.13.0; el script desactiva la telemetría.
 - Las skills generadas muestran `openspec <comando>`; en este repositorio ejecutar su equivalente `npm run openspec -- <comando>` para usar la versión local sin depender del PATH global.
 - Configuración y reglas en `openspec/config.yaml`; contratos vigentes en `openspec/specs/`; propuestas y tareas en `openspec/changes/`. Escribir artefactos en español conservando encabezados y palabras SHALL/MUST requeridos por OpenSpec.
@@ -98,3 +101,12 @@ gh pr list
 ```
 
 Si `chrisenprod` no tiene una sesión iniciada, autenticarse con `gh auth login --hostname github.com --git-protocol https` usando esa cuenta y verificar la identidad antes de continuar.
+
+## Facturación cloud opcional
+
+`BILLING_ENABLED=true` habilita suscripciones y créditos con Polar en cloud.
+Configuración y operación en [la guía de facturación](docs/site/facturacion.md).
+API Polar desde backend y verificación con `standardwebhooks`; sin SDK frontend.
+`backend/billing.js` conserva planes, períodos y operaciones en SQLite de control;
+`backend/polar.js` encapsula el proveedor. No activar cobros ni usar tarjetas reales
+en QA: usar sandbox o transportes simulados. Un solo worker por SQLite.

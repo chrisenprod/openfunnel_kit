@@ -40,12 +40,14 @@ directorio público y de las imágenes. Solo se usa al arrancar los contenedores
 
 - `DOCKER_APP_ORIGIN` y `DOCKER_PUBLIC_BASE_URL`: origen HTTPS de la app acordado.
 - `DOCKER_HTTP_PORT`: puerto libre elegido en el VPS, publicado solo en loopback.
-- Credenciales de administrador y claves Zernio/LLM: transferidas por SSH desde el
-  entorno autorizado, sin valores en argumentos, Git, documentación ni logs.
-- `DOCKER_LLM_MODEL`: Luna por defecto.
-- `DOCKER_BETTER_AUTH_SECRET`: generado específicamente para producción.
-- `DOCKER_ZERNIO_WEBHOOK_SECRET`: se conserva durante el traslado; no se modifica
-  el webhook remoto hasta tener HTTPS, datos y un único receptor operativo.
+- Cloud: `DOCKER_APP_MODE=cloud`, correo del dueño, Resend y claves de sesión/cifrado
+  independientes del desarrollo; Polar usa token y webhook secret separados.
+- Zernio/LLM y acceso compartido `DOCKER_ADMIN_*` quedan vacíos al activar cloud
+  nuevo: cada espacio guarda sus conexiones desde la interfaz.
+- Transferir el entorno por SSH sin valores en argumentos, Git, documentación ni
+  logs. La preparación privada no modifica la configuración activa hasta el corte.
+- Self-hosted conserva su archivo de entorno en el respaldo previo a una transición;
+  no reutilizar sus credenciales ni reasignar su base al primer usuario cloud.
 
 Se verificaron la interpretación exacta de valores por Compose, integridad de la
 transferencia y permisos. La creación inicial rechaza un destino existente; las

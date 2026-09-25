@@ -270,3 +270,47 @@ independiente del CI en el VPS. Una unidad systemd mantiene el trabajo independi
 de SSH; el lock del host y Actions serializan. Backup, guard de migraciones y
 rollback de código preservan el volumen existente. Detalles y límites en
 [CI-Y-ENTORNO.md](deploy/CI-Y-ENTORNO.md).
+
+## 10. Cuentas cloud y conexiones propias
+
+Implementación local en `cloud-accounts-and-provider-keys`, activada únicamente
+con `APP_MODE=cloud`. El modo predeterminado conserva single user. La facturación se habilita por separado.
+
+`backend/cloud-server.js` despacha autenticación y administración sobre
+`CLOUD_DATA_DIR/control.sqlite`; Better Auth usa correo/contraseña y Resend para
+verificación y recuperación. Los únicos endpoints de autenticación expuestos son
+login/logout/session y register/resend/recover/verify/reset explícitos, no el handler
+completo de Better Auth. Tokens con caducidad y hash de uso único, límites
+persistidos y propietario verificado según `CLOUD_OWNER_EMAIL`.
+
+Cada cuenta verificada tiene un UUID de espacio, una SQLite en `workspaces/` y su
+worker dentro del mismo proceso. Se reutilizan los controladores de negocio sin
+exponer servidores internos. La sesión decide el espacio; Bearer exige
+`X-OpenFunnel-Workspace` y la clave se autentica dentro de esa base. Callbacks y
+webhooks incluyen el UUID en la ruta; sus firmas derivan de la clave maestra y el
+espacio. Suspensión se comprueba también antes y después de llamadas externas.
+No se ofrece acceso del superadmin al contenido de cuentas ajenas.
+
+`provider-connections.js` cifra conexiones con AES-256-GCM, nonce aleatorio y AAD
+espacio/proveedor/versión. La clave maestra externa se configura mediante
+`PROVIDER_ENCRYPTION_KEY`. Self-hosted prioriza entorno, cloud exige claves propias.
+El SDK LLM resuelve la configuración actual e invalida resultados tras rotación;
+la mutación de conexiones pausa automatización y cancela salidas pendientes.
+`provider-network.js` exige HTTPS/443 y hosts autorizados, rechaza redirecciones y
+valida todas las direcciones DNS en la conexión real del socket.
+
+La migración 007 añade conexiones, cuentas, tokens de correo, límites y auditoría.
+`scripts/migrate-cloud-owner.js` trabaja offline sobre una copia y un dueño ya
+verificado; no sobrescribe destinos ni elimina la fuente. Guía pública, recuperación
+y límites en [Cuentas y conexiones](site/cuentas.md). Respaldo del control y todas
+las bases como un conjunto, con secretos externos por separado. Un proceso por
+instancia; no escalar réplicas compartiendo SQLite.
+
+## Facturación cloud opcional
+
+`BILLING_ENABLED=true` habilita suscripciones y créditos con Polar en cloud.
+Configuración y operación en [la guía de facturación](site/facturacion.md).
+API Polar desde backend y verificación con `standardwebhooks`; sin SDK frontend.
+`backend/billing.js` conserva planes, períodos y operaciones en SQLite de control;
+`backend/polar.js` encapsula el proveedor. No activar cobros ni usar tarjetas reales
+en QA: usar sandbox o transportes simulados. Un solo worker por SQLite.

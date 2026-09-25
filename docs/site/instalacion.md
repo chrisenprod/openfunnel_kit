@@ -8,10 +8,10 @@ Ejecuta los comandos desde la raíz de un clon del repositorio. Para desarrollo 
 git clone https://github.com/chrisenprod/openfunnel_kit.git
 cd openfunnel_kit
 npm ci
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-Edita `.env`: define `admin_user` y una contraseña propia de 12 a 128 caracteres en `admin_pass`. Conserva `APP_ORIGIN=http://localhost:5173` si abrirás esa URL. No sobrescribas un `.env` existente.
+Edita `.env.local`: define `admin_user` y una contraseña propia de 12 a 128 caracteres en `admin_pass`. Conserva `APP_ORIGIN=http://localhost:5173` si abrirás esa URL. No sobrescribas un `.env.local` existente.
 
 En una terminal inicia la API:
 
@@ -35,7 +35,7 @@ La respuesta `{"ok":true}` comprueba la conexión a SQLite. No demuestra que la 
 
 ## Datos de ejemplo
 
-`npm run seed:demo` añade registros ficticios a la base configurada en `.env`. Úsalo solo en una instalación de desarrollo. No conecta canales ni envía mensajes; repetirlo no sobrescribe ni duplica los registros demo existentes.
+`npm run seed:demo` añade registros ficticios a la base configurada en `.env.local`. Úsalo solo en una instalación de desarrollo. No conecta canales ni envía mensajes; repetirlo no sobrescribe ni duplica los registros demo existentes.
 
 ## Ejecutar con Docker
 

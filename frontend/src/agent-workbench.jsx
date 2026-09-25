@@ -161,7 +161,7 @@ export function AgentTestPanel({ id, setDirty }) {
   return <section className="related-section agent-test"><div className="section-heading"><h2>Probar agente</h2>
     <button className="button secondary" disabled={busy || (!history.length && !error)} onClick={() => { setHistory([]); setResult(null); setError(''); setMessage(''); setDirty(custom); }}>Reiniciar</button>
     </div>
-    <p className="muted">Chat temporal · Consume tokens · Sin envíos reales.</p>
+    <p className="muted">Chat temporal · Consume tokens y, si hay facturación activa, créditos · Sin envíos reales.</p>
     <Notice error>{error}</Notice>
     <form onSubmit={run} aria-busy={busy}><fieldset disabled={busy}><legend className="sr-only">Prueba del agente</legend>
       <details className="candidate-instructions"><summary>Opciones de prueba</summary><p className="muted">Las herramientas se simulan. El historial se pierde al salir del agente.</p>
