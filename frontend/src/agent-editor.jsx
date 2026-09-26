@@ -111,7 +111,7 @@ function DirectInstructions({ id, version, refresh, open, confirm, setDirty }) {
       </div>; })}
       <div className="form-actions"><button className="button primary" disabled={!modified.current}>{busy ? 'Guardando…' : 'Guardar instrucciones'}</button><span className="muted" role="status">{modified.current ? 'Cambios sin guardar' : snapshot?.prompts.length ? 'Guardado' : 'Sin instrucciones'}</span></div>
     </fieldset></form>}</LoadState>
-    {historyId && <PromptHistory id={historyId} version={version} refresh={() => { state.retry(); refresh(); }} confirm={confirm}/>} 
+    {historyId && <PromptHistory id={historyId} version={version} refresh={() => { state.retry(); refresh(); }} confirm={confirm}/>}
   </section>;
 }
 
