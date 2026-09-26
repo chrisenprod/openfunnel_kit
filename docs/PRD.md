@@ -987,3 +987,13 @@ El flujo de pagos se implementa en el cambio OpenSpec `polar-admin-portal`.
   IA pendiente y requiere reanudación humana. Las pruebas del agente simulan esta acción.
 
 Contrato y ejemplo completo: [API para agentes externos](api/AGENTES.md).
+
+### 14.7. Exención del dueño
+
+`BILLING_OWNER_EXEMPT=true` permite al superadmin activo y verificado usar IA/tools
+sin suscripción ni cuota. Opt-in por instancia, false por defecto; no exime clientes
+ni cuentas suspendidas. Registrar consumo exento con cero créditos cobrados y
+mostrar acceso sin límite e historial en Facturación. No crear suscripciones Polar
+ficticias ni cancelar las existentes. Retirar la opción restaura las reglas de pago.
+Los costes del proveedor se mantienen. La migración 010 añade el ledger exento sin
+modificar tablas de suscripciones o consumos pagados.
