@@ -81,8 +81,8 @@ retomar automatización. El panel no muestra secretos ni conversaciones ajenas.
 ## Conectar tus proveedores
 
 En **Canales → Configurar Zernio** introduce la API key de tu cuenta de
-[Zernio](https://zernio.com). Después, usa **Conectar canal** o **Sincronizar canales**
-y configura la recepción desde **Configurar recepción**. La interfaz ya no ofrece
+[Zernio](https://zernio.com). Después, usa **Conectar canal** o **Sincronizar canales**.
+La recepción queda preparada automáticamente al guardar la clave. La interfaz ya no ofrece
 crear canales manuales; los registros existentes se conservan.
 Cada espacio tiene una URL y una firma propias; no copies el webhook de otro espacio.
 
@@ -97,7 +97,8 @@ El formulario permite completar la URL de [OpenAI Platform](https://platform.ope
 Chat Completions. Cada uno requiere su propia API key. Escribe el ID exacto del
 modelo con soporte de herramientas; los enlaces a sus catálogos están junto al campo.
 Cambiar la URL limpia la clave escrita y exige una nueva al sustituir una conexión.
-Guardar no comprueba la disponibilidad del modelo: usa la validación explícita del agente.
+Al guardar se comprueba automáticamente la conexión del modelo, incluida su capacidad
+de usar herramientas. El resultado aparece aquí, sin tener que abrir un agente.
 
 En self-hosted, `.env` tiene prioridad: la UI pide solo los valores ausentes. En
 cloud, las claves globales Zernio/LLM del operador no se heredan: cada cliente
@@ -108,9 +109,10 @@ la clave no vuelve al navegador: ves su estado y puedes reemplazarla. Dejar la
 clave vacía conserva la actual, salvo al cambiar URL, que exige una clave nueva.
 Los valores ya configurados por entorno no pueden reemplazarse desde la app.
 
-Guardar no realiza pruebas de pago ni activa IA o envíos. Cambiar una conexión
+Guardar IA realiza la comprobación del modelo y guardar Zernio registra su webhook.
+No se activa la IA del canal ni se envían mensajes. Cambiar una conexión
 pausa automatización e invalida respuestas pendientes. Revisa sincronización,
-webhook y comprobación del modelo antes de reactivar. Comprobar IA y probar un
+la preparación del proveedor modificado antes de reactivar. Comprobar IA y probar un
 agente sí llaman a tu proveedor y consumen tokens.
 
 `LLM_ALLOWED_HOSTS` controla los destinos configurables, con hosts exactos o
@@ -181,3 +183,28 @@ firmas de webhooks cloud: tras rotarla vuelve a registrar cada webhook.
 El ensayo automatizado usa datos sintéticos; no migra producción ni prueba la
 entrega real de mensajes. El lanzamiento comercial necesita además respaldos
 externos, condiciones del servicio y verificar los pagos en sandbox antes de activarlos.
+
+## Preparación automática y reintentos
+
+Al guardar una API key de Zernio, OpenFunnel registra o actualiza la recepción de
+mensajes para ese espacio. Al guardar proveedor, URL o modelo de IA, verifica texto
+y herramientas con dos llamadas al modelo y una herramienta de prueba. Con
+facturación activa consume tres créditos, salvo cuentas exentas; el proveedor puede
+cobrar tokens. Clientes sin plan o saldo verán el motivo y podrán reintentar tras resolverlo.
+
+Si la preparación falla, las credenciales ya quedaron guardadas cifradas. Se muestra
+el error y **Reintentar conexión**, sin volver a pegarlas. Las conexiones antiguas
+pendientes muestran **Completar conexión**. Una conexión lista no vuelve a ejecutar
+la preparación al reintentar. Cargar una página o reiniciar no hace llamadas al
+proveedor ni registra webhooks por sí solo.
+
+La preparación de IA y Zernio es independiente: cambiar uno no borra la comprobación
+del otro. Mantén la activación de los canales como una decisión explícita. Los controles
+manuales anteriores siguen disponibles para diagnóstico.
+
+La API de conexiones requiere sesión y `Origin`; las claves Bearer no administran
+proveedores. PUT `/api/connections/llm` o `/api/connections/zernio` devuelve metadata
+con `setup.status` y `setup.error`. Un guardado cifrado correcto devuelve 200 aunque
+el paso externo devuelva `failed`: revisa el estado. POST a la misma URL con
+`{expected_version}` reintenta sin rotar credenciales; una versión obsoleta o una
+preparación concurrente devuelve 409. GET solo consulta, sin efectos externos.

@@ -30,13 +30,13 @@ Todos los agentes del espacio comparten una conexión. **No hay selector ni camp
 
 Para Azure usa su endpoint v1, por ejemplo `https://TU_RECURSO.openai.azure.com/openai/v1/`, y el nombre del deployment en `LLM_MODEL`. Para otro proveedor usa su URL compatible; debe soportar Chat Completions y llamadas a herramientas. La app no transmite respuestas en streaming.
 
-Al editar un agente, **Comprobar conexión** verifica texto y herramientas. La comprobación llama al proveedor y puede consumir tokens. La prueba aislada también consume tokens, aunque no exige activar el agente ni validar antes la operación automática.
+Al guardar el proveedor de IA desde la interfaz se comprueban automáticamente texto y herramientas. **Reintentar conexión** permite recuperar un fallo; para credenciales de servidor existentes puedes usar **Completar conexión** en el listado de agentes. La comprobación llama al proveedor y puede consumir tokens. La prueba aislada también consume tokens, aunque no exige activar el agente ni validar antes la operación automática.
 
 ## Canales Zernio
 
 `ZERNIO_API_KEY` habilita la conexión. Para webhooks y retorno de conexión configura `PUBLIC_BASE_URL` con el origen HTTPS de la app y `ZERNIO_WEBHOOK_SECRET` con al menos 32 caracteres.
 
-Desde Canales conecta o sincroniza las cuentas autorizadas, registra el webhook y asigna un agente. Revisa las restricciones y ventanas del canal antes de habilitar automatización. Usa primero una cuenta propia de prueba. No reutilices una base operativa con dos workers.
+Guardar la API key de Zernio registra automáticamente el webhook. Desde Canales conecta o sincroniza las cuentas autorizadas y asigna un agente. Para una conexión anterior pendiente usa **Completar conexión**. Revisa las restricciones y ventanas del canal antes de habilitar automatización. Usa primero una cuenta propia de prueba. No reutilices una base operativa con dos workers.
 
 La [guía de integración del repositorio](https://github.com/chrisenprod/openfunnel_kit/blob/main/docs/deploy/INTEGRACIONES.md) describe firma, webhooks y preparación del proveedor. Las claves de Zernio y del LLM son distintas de las [claves API de OpenFunnel](./api.html).
 

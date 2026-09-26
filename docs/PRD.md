@@ -997,3 +997,11 @@ mostrar acceso sin límite e historial en Facturación. No crear suscripciones P
 ficticias ni cancelar las existentes. Retirar la opción restaura las reglas de pago.
 Los costes del proveedor se mantienen. La migración 010 añade el ledger exento sin
 modificar tablas de suscripciones o consumos pagados.
+
+### 14.8. Preparación automática de proveedores
+
+Guardar la conexión IA valida el modelo y tool calling. Guardar Zernio registra su
+webhook por espacio. Estado visible en la conexión; error persistente seguro y
+reintento sin volver a guardar credenciales. La facturación y exención del dueño se
+respetan. Cambiar un proveedor no invalida la preparación del otro. La activación IA
+del canal sigue siendo explícita; lectura/reinicio no ejecutan pasos externos.

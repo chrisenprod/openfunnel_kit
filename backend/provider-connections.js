@@ -8,9 +8,11 @@ export function encryptionKey(env) {
   if (!/^[a-f\d]{64}$/i.test(env.PROVIDER_ENCRYPTION_KEY || '')) throw new HttpError(503, 'Configura PROVIDER_ENCRYPTION_KEY (32 bytes hexadecimales) en el servidor.');
   return Buffer.from(env.PROVIDER_ENCRYPTION_KEY, 'hex');
 }
-export function invalidateConnections(db, reason = 'La conexión cambió. Revisa antes de reactivar.') {
-  db.exec('DELETE FROM model_validations; DELETE FROM connection_attempts;');
-  db.prepare("UPDATE channels SET automation_enabled=0,inbox_verified_at=NULL").run();
+export function invalidateConnections(db, reason = 'La conexión cambió. Revisa antes de reactivar.', provider) {
+  if (provider !== 'zernio') db.exec('DELETE FROM model_validations;');
+  if (provider !== 'llm') db.exec('DELETE FROM connection_attempts;');
+  db.prepare("UPDATE channels SET automation_enabled=0").run();
+  if (provider !== 'llm') db.prepare("UPDATE channels SET inbox_verified_at=NULL").run();
   db.prepare("UPDATE conversations SET automation_mode='manual',revision=revision+1,pause_reason=?").run(reason);
   db.prepare("UPDATE messages SET delivery_status='cancelled' WHERE id IN (SELECT message_id FROM outbound_messages WHERE status='pending')").run();
   db.prepare("UPDATE outbound_messages SET status='cancelled',error=? WHERE status='pending'").run(reason);
@@ -82,7 +84,7 @@ export function createProviderConnections(db, env, workspace = 'self-hosted') {
     const ciphertext = [iv, cipher.getAuthTag(), encrypted].map(b => b.toString('base64')).join('.');
     transaction(db, () => {
       db.prepare('INSERT INTO provider_connections VALUES (?,?,?,?) ON CONFLICT(provider) DO UPDATE SET version=excluded.version,ciphertext=excluded.ciphertext,updated_at=excluded.updated_at').run(provider,version,ciphertext,new Date().toISOString());
-      invalidateConnections(db);
+      invalidateConnections(db, undefined, provider);
       if (provider === 'zernio') db.prepare("DELETE FROM integration_settings WHERE key IN ('webhook_id','webhook_fingerprint')").run();
     });
     cache.delete(provider);
@@ -98,7 +100,8 @@ export function createProviderConnections(db, env, workspace = 'self-hosted') {
     const encrypted = Buffer.concat([cipher.update('{}'),cipher.final()]);
     transaction(db, () => {
       db.prepare('INSERT INTO provider_connections VALUES (?,?,?,?) ON CONFLICT(provider) DO UPDATE SET version=excluded.version,ciphertext=excluded.ciphertext,updated_at=excluded.updated_at').run(provider,version,[iv,cipher.getAuthTag(),encrypted].map(b=>b.toString('base64')).join('.'),new Date().toISOString());
-      invalidateConnections(db);
+      invalidateConnections(db, undefined, provider);
+      if (provider === 'zernio') db.prepare("DELETE FROM integration_settings WHERE key IN ('webhook_id','webhook_fingerprint')").run();
     });
     cache.delete(provider);
     return metadata(provider);

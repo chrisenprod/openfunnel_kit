@@ -118,11 +118,9 @@ export function ChannelConnections({ refresh, version }) {
           <>
             {state.data.zernio.configured && (
               <div className="integration-status">
-                <span>
-                  {state.data.zernio.webhookRegistered ? 'Webhook registrado' : 'Webhook pendiente'}
-                </span>
                 <details className="connection-options">
-                  <summary>Configurar recepción</summary>
+                  <summary>Diagnóstico de recepción</summary>
+                  <p>{state.data.zernio.webhookRegistered ? 'Webhook registrado' : 'Webhook pendiente'}</p>
                   <button
                     className="text-button"
                     disabled={a.busy || !state.data.zernio.webhookConfigured}
