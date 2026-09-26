@@ -103,6 +103,20 @@ test('Concurrent setup rejects saves/deletion/retry and exposes running state',a
   const saving=a.request('PUT','/connections/llm',llm);await begin;
   assert.equal((await a.request('GET','/connections/llm')).data.setup.status,'running');
   for(const method of ['PUT','POST','DELETE'])assert.equal((await a.request(method,'/connections/llm',{expected_version:1})).status,409);
+  const agent=save(a.db,'ai_agents',{name:'Concurrent validation'});
+  assert.equal((await a.request('POST',`/ai_agents/${agent.id}/validate`,{})).status,409);
+  assert.equal((await a.request('POST','/integrations/validate-model',{})).status,409);
   a.state.gate=null;release();assert.equal((await saving).data.setup.status,'ready');
   assert.equal(a.state.calls.length,2);
+});
+
+test('Manual diagnostics shares the same lock as automatic preparation',async t=>{
+  const a=await fixture(t);let release,started;
+  await a.request('PUT','/connections/llm',llm);
+  const begin=new Promise(resolve=>started=resolve);
+  a.state.gate=()=>{started();return new Promise(resolve=>release=resolve);};
+  const checking=a.request('POST','/integrations/validate-model',{});await begin;
+  assert.equal((await a.request('PUT','/connections/llm',{expected_version:1,model:'replacement'})).status,409);
+  assert.equal((await a.request('POST','/connections/llm',{expected_version:1})).status,409);
+  a.state.gate=null;release();assert.equal((await checking).status,200);
 });

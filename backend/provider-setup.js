@@ -36,6 +36,12 @@ export function createProviderSetup(db, connections, integrations) {
   }
   return {
     metadata,
+    async check(provider, task) {
+      available(provider);
+      running.add(provider);
+      try { return await task(); }
+      finally { running.delete(provider); }
+    },
     async save(provider, body) {
       available(provider);
       connections.save(provider, body);

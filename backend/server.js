@@ -273,14 +273,14 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         else if (action === 'profiles') result = await integrations.createProfile(body);
         else if (action === 'connect')
           result = await integrations.connect(body, session.session.id);
-        else if (action === 'validate-model') result = await integrations.validateModel(body.model);
-        else if (action === 'webhook') result = await integrations.registerWebhook();
+        else if (action === 'validate-model') result = await providerSetup.check('llm', () => integrations.validateModel(body.model));
+        else if (action === 'webhook') result = await providerSetup.check('zernio', () => integrations.registerWebhook());
         else if (channelAction === 'automation') result = integrations.automation(channelId, body);
         else if (conversationAction === 'mode') result = integrations.mode(conversationId, body);
         else if (conversationAction === 'send') result = integrations.send(conversationId, body);
         else if (conversationAction === 'sync')
           result = integrations.syncConversation(conversationId);
-        else if (agentAction === 'validate') result = await integrations.validateAgent(agentId);
+        else if (agentAction === 'validate') result = await providerSetup.check('llm', () => integrations.validateAgent(agentId));
         else if (outboundAction) result = await integrations.resolveOutbound(outboundId, body);
         else if (eventId) result = integrations.retryEvent(eventId);
         else throw new HttpError(404, 'Ruta no encontrada.');
