@@ -177,8 +177,8 @@ export const resources = {
     ],
   },
   users: {
-    label: 'Usuarios',
-    singular: 'usuario',
+    label: 'Responsables',
+    singular: 'responsable',
     group: 'Configuración',
     note: 'Personas para asignación; estos registros no habilitan acceso.',
     title: 'name',
