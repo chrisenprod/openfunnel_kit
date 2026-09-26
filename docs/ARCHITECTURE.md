@@ -321,3 +321,11 @@ API Polar desde backend y verificación con `standardwebhooks`; sin SDK frontend
 `backend/billing.js` conserva planes, períodos y operaciones en SQLite de control;
 `backend/polar.js` encapsula el proveedor. No activar cobros ni usar tarjetas reales
 en QA: usar sandbox o transportes simulados. Un solo worker por SQLite.
+
+### Exención opcional del dueño
+
+`BILLING_OWNER_EXEMPT` se verifica dentro del medidor consultando rol superadmin,
+estado activo y correo verificado del espacio. La migración 010 añade
+`billing_exempt_operations`, con las mismas reservas y recuperación que el ledger
+pagado. Historial une ambos; `owner_exempt` y `exempt_usage` describen acceso y uso
+sin simular un saldo ilimitado numérico. No altera períodos ni eventos Polar.

@@ -22,8 +22,7 @@ POLAR_WEBHOOK_SECRET=secreto_del_endpoint
 BILLING_ENABLED=false
 ```
 
-No uses `VITE_*` para secretos. `npm run dev:backend` carga `.env`, no
-`.env.local`; este último lo carga Vite. Docker usa los equivalentes
+No uses `VITE_*` para secretos. `npm run dev:backend` carga `.env.local`; `npm start` carga `.env`. Docker usa los equivalentes
 `DOCKER_POLAR_TOKEN`, `DOCKER_POLAR_SERVER`, `DOCKER_POLAR_WEBHOOK_SECRET`
 y `DOCKER_BILLING_ENABLED` de `.env.docker`.
 
@@ -49,6 +48,24 @@ al backend público de la app, con `/api` redirigido correctamente.
    usando el precio vigente del producto.
 7. Activa `BILLING_ENABLED=true` y reinicia la API cuando la configuración esté lista.
    Las cuentas sin período pagado podrán gestionar recursos, pero no ejecutar IA/tools.
+
+## Eximir al dueño de la instancia
+
+Opcionalmente configura `BILLING_OWNER_EXEMPT=true` (Docker:
+`DOCKER_BILLING_OWNER_EXEMPT=true`) y reinicia la API. Por defecto es `false`.
+Solo el superadmin activo con correo verificado queda exento de suscripción y cuota.
+Los clientes conservan sus controles de plan y saldo. No se obtiene esta exención
+por indicar un correo, un rol o un ID de espacio en una petición.
+
+Facturación muestra **Sin límite** y el uso exento acumulado. Cada llamada al modelo
+y herramienta se registra, incluidos pruebas y validaciones, con cero créditos
+cobrados; los fallos liberan la reserva. Las API keys y el worker del espacio del
+dueño reciben el mismo tratamiento. Los proveedores de IA y Zernio siguen cobrando
+en sus propias cuentas.
+
+La opción no cancela suscripciones existentes: el portal sigue disponible para
+gestionarlas. Desactivarla restaura la exigencia de período pagado y créditos sin
+borrar el historial. `BILLING_ENABLED=false` conserva el modo general sin cobros.
 
 ## Probar antes de producción
 

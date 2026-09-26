@@ -566,7 +566,7 @@ export function AgentIntegration({ id, version, refresh }) {
       <LoadState state={state}>
         {state.data && (
           <>
-            <p className="muted">La comprobación usa dos llamadas al modelo y una herramienta de prueba: 3 créditos si la facturación está activa.</p>
+            <p className="muted">La comprobación usa dos llamadas al modelo y una herramienta de prueba. Son 3 créditos con facturación activa; las cuentas exentas solo registran el uso.</p>
             <p>{state.data.validated ? 'Conexión comprobada' : 'Comprobación pendiente'}</p>
             {!state.data.configured && (
               <p className="muted">

@@ -46,6 +46,91 @@ function fixture(t,overrides={}) {
   return {db,billing,env,fetcher,subscription,calls,setup,deliver,paid,grant,fail:()=>{failed=true;},remote:items=>{remoteSubscriptions=items;}};
 }
 
+test('Owner exemption requires explicit flag, verified active role and preserves customer billing', async t => {
+  const f=fixture(t,{BILLING_OWNER_EXEMPT:'true'});
+  f.db.prepare("UPDATE cloud_accounts SET role='superadmin' WHERE workspace_id='workspace-a'").run();
+  const meter=f.billing.meter('workspace-a');
+  assert.equal(f.billing.summary('workspace-a').owner_exempt,true);
+  assert.equal(f.billing.summary('workspace-a').period,null);
+  assert.equal(await meter.run('llm','owner-call','validation',()=>42),42);
+  assert.equal(meter.runSync('tool','owner-tool','validation',()=>12),12);
+  assert.deepEqual(f.billing.summary('workspace-a').exempt_usage,{consumed:2,reserved:0});
+  assert.equal(f.billing.history('workspace-a',1).items.every(row=>row.exempt===1),true);
+  assert.equal(f.db.prepare('SELECT count(*) n FROM billing_operations').get().n,0);
+  assert.equal(f.db.prepare('SELECT count(*) n FROM billing_subscriptions').get().n,0);
+  await assert.rejects(f.billing.checkout('workspace-a',{product_id:'plan-a'}),{status:409});
+  assert.deepEqual(f.calls,[]);
+  await assert.rejects(f.billing.meter('workspace-b').run('llm','client','test',()=>assert.fail('Must not call provider')),{status:402});
+  assert.equal(f.billing.summary('workspace-b').owner_exempt,false);
+  assert.equal(f.billing.history('workspace-b',1).total,0);
+  f.db.prepare("UPDATE cloud_accounts SET status='suspended' WHERE workspace_id='workspace-a'").run();
+  assert.throws(()=>meter.runSync('tool','blocked','agent',()=>assert.fail('Suspended owner')),{status:403});
+  assert.equal(f.billing.summary('workspace-a').owner_exempt,false);
+  f.db.prepare("UPDATE cloud_accounts SET status='active' WHERE workspace_id='workspace-a'").run();
+  f.db.prepare("UPDATE auth_user SET emailVerified=0 WHERE id='a'").run();
+  assert.throws(()=>meter.runSync('tool','unverified','agent',()=>assert.fail('Unverified owner')),{status:402});
+  f.db.prepare("UPDATE auth_user SET emailVerified=1 WHERE id='a'").run();
+  for(const flag of [undefined,'false']) {
+    const paid=createBilling(f.db,{...f.env,BILLING_OWNER_EXEMPT:flag},f.fetcher);
+    assert.equal(paid.summary('workspace-a').owner_exempt,false);
+    assert.throws(()=>paid.meter('workspace-a').runSync('tool','needs-plan','agent',()=>1),{status:402});
+    assert.equal(paid.history('workspace-a',1).total,2);
+  }
+  assert.throws(()=>createBilling(f.db,{...f.env,BILLING_OWNER_EXEMPT:'yes'},f.fetcher),/BILLING_OWNER_EXEMPT/);
+});
+
+test('Exempt usage releases failures, prevents duplicate reservations and recovers on restart', async t => {
+  const f=fixture(t,{BILLING_OWNER_EXEMPT:'true'});
+  f.db.prepare("UPDATE cloud_accounts SET role='superadmin' WHERE workspace_id='workspace-a'").run();
+  const meter=f.billing.meter('workspace-a');
+  let release;
+  const pending=meter.run('llm','pending','agent',()=>new Promise(resolve=>{release=resolve;}));
+  assert.equal(f.billing.summary('workspace-a').exempt_usage.reserved,1);
+  await assert.rejects(meter.run('llm','pending','agent',()=>1),{status:409});
+  release(1);await pending;
+  await meter.run('llm','pending','agent',()=>2);
+  assert.equal(f.billing.summary('workspace-a').exempt_usage.consumed,1);
+  await assert.rejects(meter.run('llm','failure','test',()=>{throw new Error('Failure');}));
+  assert.throws(()=>meter.runSync('tool','tool-failure','test',()=>{throw new Error('Failure');}));
+  assert.equal(f.billing.history('workspace-a',1).items.filter(row=>row.status==='released').length,2);
+  f.db.prepare("UPDATE billing_exempt_operations SET status='reserved' WHERE operation_key='failure'").run();
+  const restarted=createBilling(f.db,f.env,f.fetcher);
+  assert.equal(restarted.summary('workspace-a').exempt_usage.reserved,0);
+  await restarted.meter('workspace-a').run('llm','failure','test',()=>1);
+  assert.equal(restarted.summary('workspace-a').exempt_usage.consumed,2);
+  const otherEnvironment=createBilling(f.db,{...f.env,POLAR_SERVER:'production'},f.fetcher);
+  assert.equal(otherEnvironment.history('workspace-a',1).total,0);
+});
+
+test('Exempt owner validates model without paid period and records all three uses', async t => {
+  const f=fixture(t,{BILLING_OWNER_EXEMPT:'true'});
+  f.db.prepare("UPDATE cloud_accounts SET role='superadmin' WHERE workspace_id='workspace-a'").run();
+  let calls=0;
+  const client={chat:{completions:{create:async body=>{calls++;return {choices:[{finish_reason:body.tool_choice?'tool_calls':'stop',message:body.tool_choice?{tool_calls:[{id:'probe',function:{name:'connection_probe',arguments:'{}'}}]}:{content:'OK'}}]};}}}};
+  const llm=createLLM({LLM_BASE_URL:'https://api.example.test/v1',LLM_API_KEY:'mock',LLM_MODEL:'test',BILLING_METER:f.billing.meter('workspace-a')},client);
+  await llm.validate('test');
+  assert.equal(calls,2);
+  assert.deepEqual(f.billing.summary('workspace-a').exempt_usage,{consumed:3,reserved:0});
+  assert.equal(f.billing.history('workspace-a',1).items.filter(row=>row.source==='validation').length,3);
+  assert.equal(f.billing.summary('workspace-a').period,null);
+});
+
+test('Switching exemption never double-counts an existing paid or exempt operation', async t => {
+  const f=fixture(t);await f.grant(1);
+  f.db.prepare("UPDATE cloud_accounts SET role='superadmin' WHERE workspace_id='workspace-a'").run();
+  f.billing.meter('workspace-a').runSync('tool','paid','agent',()=>1);
+  const free=createBilling(f.db,{...f.env,BILLING_OWNER_EXEMPT:'true'},f.fetcher);
+  free.meter('workspace-a').runSync('tool','paid','agent',()=>1);
+  free.meter('workspace-a').runSync('tool','exempt','agent',()=>1);
+  assert.equal(free.summary('workspace-a').period.available,0);
+  assert.equal(free.summary('workspace-a').exempt_usage.consumed,1);
+  assert.equal(free.history('workspace-a',1).total,2);
+  f.billing.meter('workspace-a').runSync('tool','exempt','agent',()=>1);
+  assert.equal(f.billing.summary('workspace-a').period.consumed,1);
+  assert.throws(()=>f.billing.meter('workspace-a').runSync('tool','new','agent',()=>1),{status:402});
+  assert.equal(f.billing.summary('workspace-a').subscription.status,'active');
+});
+
 test('Polar catalog, optimistic plans, sanitization and environment isolation',async t=>{
   const f=fixture(t);await f.setup();
   assert.equal(f.billing.admin().plans[0].credits,10);

@@ -14,12 +14,15 @@ export function createBilling(db, env, fetcher) {
   const scope = polar.environment;
   const enabled = env.BILLING_ENABLED === 'true';
   if (env.BILLING_ENABLED && !['true','false'].includes(env.BILLING_ENABLED)) throw new Error('BILLING_ENABLED debe ser true o false.');
+  const ownerExemption = env.BILLING_OWNER_EXEMPT === 'true';
+  if (env.BILLING_OWNER_EXEMPT && !['true','false'].includes(env.BILLING_OWNER_EXEMPT)) throw new Error('BILLING_OWNER_EXEMPT debe ser true o false.');
   const origin = new URL(env.APP_ORIGIN || 'http://localhost:5173').origin;
   const webhookURL = `${env.PUBLIC_BASE_URL || origin}/api/billing/polar/webhook`.replace(/([^:]\/)\//g, '$1');
   let timer, processing, stopped = true;
   const locks = new Set();
   // A single API/worker owns the control database. Interrupted operations favor the customer.
   db.prepare("UPDATE billing_operations SET status='released',updated_at=? WHERE status='reserved'").run(stamp());
+  db.prepare("UPDATE billing_exempt_operations SET status='released',updated_at=? WHERE status='reserved'").run(stamp());
   const plan = id => db.prepare('SELECT * FROM billing_plans WHERE environment=? AND product_id=?').get(scope,id);
   const plans = () => db.prepare('SELECT * FROM billing_plans WHERE environment=? ORDER BY amount,product_id').all(scope);
   const subscriptions = workspace => db.prepare('SELECT * FROM billing_subscriptions WHERE environment=? AND workspace_id=? ORDER BY period_end DESC').all(scope,workspace);
@@ -30,12 +33,20 @@ export function createBilling(db, env, fetcher) {
     return { consumed: rows.find(r=>r.status==='consumed')?.n || 0, reserved: rows.find(r=>r.status==='reserved')?.n || 0 };
   }
   function account(workspace) {
-    return db.prepare('SELECT c.*,u.email,u.name FROM cloud_accounts c JOIN auth_user u ON u.id=c.user_id WHERE workspace_id=?').get(workspace);
+    return db.prepare('SELECT c.*,u.email,u.name,u.emailVerified FROM cloud_accounts c JOIN auth_user u ON u.id=c.user_id WHERE workspace_id=?').get(workspace);
+  }
+  function exempt(workspace) {
+    const member = account(workspace);
+    return enabled && ownerExemption && member?.role === 'superadmin' && member.status === 'active' && member.emailVerified === 1;
+  }
+  function exemptUsage(workspace) {
+    const rows = db.prepare('SELECT status,count(*) n FROM billing_exempt_operations WHERE environment=? AND workspace_id=? GROUP BY status').all(scope,workspace);
+    return { consumed: rows.find(r=>r.status==='consumed')?.n || 0, reserved: rows.find(r=>r.status==='reserved')?.n || 0 };
   }
   function summary(workspace) {
     const period = periods(workspace)[0];
     const usage = period ? counts(period.id) : {consumed:0,reserved:0};
-    return { enabled, configured:polar.configured && polar.webhookConfigured, environment:scope,
+    return { enabled, owner_exempt:exempt(workspace), exempt_usage:exemptUsage(workspace), configured:polar.configured && polar.webhookConfigured, environment:scope,
       subscription: subscriptions(workspace)[0] || null,
       period:period ? {...period,...usage,available:Math.max(0,period.credits-usage.consumed-usage.reserved)} : null,
       plans:plans().filter(p=>p.published && p.eligible) };
@@ -44,32 +55,40 @@ export function createBilling(db, env, fetcher) {
     if (!enabled) return false;
     return transaction(db,()=>{
       if (account(workspace)?.status !== 'active') throw new HttpError(403, 'Cuenta suspendida.');
-      const old=db.prepare('SELECT * FROM billing_operations WHERE environment=? AND workspace_id=? AND operation_key=?').get(scope,workspace,key);
-      if (old?.status === 'reserved') throw new HttpError(409, 'La operación ya está en curso.');
-      const period=periods(workspace)[0];
-      if (!period) throw new HttpError(402, 'Necesitas una suscripción pagada vigente. Revisa Facturación.');
-      if (old?.status === 'consumed') return false;
+      const owner = exempt(workspace);
+      const previous = db.prepare(`SELECT status FROM billing_operations WHERE environment=? AND workspace_id=? AND operation_key=?
+        UNION ALL SELECT status FROM billing_exempt_operations WHERE environment=? AND workspace_id=? AND operation_key=?`).all(scope,workspace,key,scope,workspace,key);
+      if (previous.some(row=>row.status==='reserved')) throw new HttpError(409, 'La operación ya está en curso.');
+      const period = owner ? null : periods(workspace)[0];
+      if (!owner && !period) throw new HttpError(402, 'Necesitas una suscripción pagada vigente. Revisa Facturación.');
+      if (previous.some(row=>row.status==='consumed')) return false;
+      if (owner) {
+        db.prepare(`INSERT INTO billing_exempt_operations VALUES (?,?,?,?,?,'reserved',?,?) ON CONFLICT(environment,workspace_id,operation_key)
+          DO UPDATE SET status='reserved',updated_at=excluded.updated_at`).run(scope,workspace,key,kind,source,stamp(),stamp());
+        return 'billing_exempt_operations';
+      }
       const used=counts(period.id);
       if (used.consumed + used.reserved >= period.credits) throw new HttpError(402, 'No quedan créditos disponibles. Revisa Facturación.');
       db.prepare(`INSERT INTO billing_operations VALUES (?,?,?,?,?,?,'reserved',?,?) ON CONFLICT(environment,workspace_id,operation_key)
         DO UPDATE SET period_id=excluded.period_id,status='reserved',updated_at=excluded.updated_at`).run(scope,workspace,key,period.id,kind,source,stamp(),stamp());
-      return true;
+      return 'billing_operations';
     });
   }
-  function finish(workspace,key,status) {
-    db.prepare("UPDATE billing_operations SET status=?,updated_at=? WHERE environment=? AND workspace_id=? AND operation_key=? AND status='reserved'").run(status,stamp(),scope,workspace,key);
+  function finish(workspace,key,status,table) {
+    if (!['billing_operations','billing_exempt_operations'].includes(table)) throw new Error('Invalid usage ledger.');
+    db.prepare(`UPDATE ${table} SET status=?,updated_at=? WHERE environment=? AND workspace_id=? AND operation_key=? AND status='reserved'`).run(status,stamp(),scope,workspace,key);
   }
   function meter(workspace) {
     return {
       async run(kind,key,source,callback) {
         const held=reserve(workspace,key,kind,source);
-        try { const value=await callback(); if (held) finish(workspace,key,'consumed'); return value; }
-        catch (error) { if (held) finish(workspace,key,'released'); throw error; }
+        try { const value=await callback(); if (held) finish(workspace,key,'consumed',held); return value; }
+        catch (error) { if (held) finish(workspace,key,'released',held); throw error; }
       },
       runSync(kind,key,source,callback) {
         const held=reserve(workspace,key,kind,source);
-        try { const value=callback(); if (held) finish(workspace,key,'consumed'); return value; }
-        catch (error) { if (held) finish(workspace,key,'released'); throw error; }
+        try { const value=callback(); if (held) finish(workspace,key,'consumed',held); return value; }
+        catch (error) { if (held) finish(workspace,key,'released',held); throw error; }
       },
     };
   }
@@ -122,6 +141,7 @@ export function createBilling(db, env, fetcher) {
     object(body,['product_id']);
     if(!identifier(body.product_id)) throw new HttpError(400,'Selecciona un plan válido.');
     if(!enabled || !polar.webhookConfigured) throw new HttpError(503,'La facturación aún no está habilitada.');
+    if(exempt(workspace)) throw new HttpError(409,'El dueño está exento de suscripción en esta instancia.');
     if(locks.has(workspace)) throw new HttpError(409,'Ya se está preparando tu checkout.');
     const p=plan(body.product_id);
     if(!p?.published || !p.eligible || !p.credits) throw new HttpError(400,'Plan no disponible.');
@@ -240,8 +260,10 @@ export function createBilling(db, env, fetcher) {
     audit(actor,id,'billing.event.retry'); return {ok:true};
   }
   function history(workspace,page) {
-    return {items:db.prepare('SELECT operation_key,kind,source,status,created_at FROM billing_operations WHERE environment=? AND workspace_id=? ORDER BY created_at DESC,operation_key LIMIT 25 OFFSET ?').all(scope,workspace,(page-1)*25),
-      total:db.prepare('SELECT count(*) n FROM billing_operations WHERE environment=? AND workspace_id=?').get(scope,workspace).n,page};
+    const query = `SELECT operation_key,kind,source,status,created_at,0 AS exempt FROM billing_operations WHERE environment=? AND workspace_id=?
+      UNION ALL SELECT operation_key,kind,source,status,created_at,1 AS exempt FROM billing_exempt_operations WHERE environment=? AND workspace_id=?`;
+    return {items:db.prepare(`SELECT * FROM (${query}) ORDER BY created_at DESC,operation_key,exempt LIMIT 25 OFFSET ?`).all(scope,workspace,scope,workspace,(page-1)*25),
+      total:db.prepare(`SELECT count(*) n FROM (${query})`).get(scope,workspace,scope,workspace).n,page};
   }
   return {enabled,summary,admin,syncProducts,savePlan,checkout,portal,receive,processPending,retry,history,meter,
     start(){stopped=false;timer=setInterval(()=>{if(!stopped) void processPending();},2000);timer.unref();void processPending();},
