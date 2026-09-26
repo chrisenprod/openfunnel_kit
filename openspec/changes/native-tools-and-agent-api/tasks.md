@@ -4,4 +4,4 @@
 - [x] 1.3 Actualizar UI de claves/herramientas y documentar ejemplos completos sin login.
 ## 2. Verificación y entrega
 - [x] 2.1 Probar catálogo/reinicio, recorrido completo Bearer, scopes, revocación, referencias cruzadas y ausencia de efectos externos.
-- [ ] 2.2 Verificar UI, suite, build y specs; publicar mediante CI/Actions sin configurar canales operativos.
+- [x] 2.2 Verificar UI, suite, build y specs; publicar mediante CI/Actions sin configurar canales operativos.
