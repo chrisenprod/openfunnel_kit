@@ -1,19 +1,16 @@
 # OpenFunnel — PRD de la plataforma
 
-Estado: primera etapa manual implementada mediante el cambio OpenSpec
-`platform-foundation`; segunda etapa de canales e IA implementada en código mediante `connected-conversations`,
-con pruebas reales de respuestas todavía pendientes.
-Las secciones 1–9 conservan la base manual; la sección 10 define su evolución.
-La sección 11 planifica la tercera etapa de infraestructura y producción.
-La sección 12 recoge la preparación para operar agentes externos mediante
-API, documentos de conocimiento, versiones de prompts, pruebas aisladas y docs públicas. Implementada en
-desarrollo mediante `agent-workbench`, sin despliegue; no cierra los pendientes de verificación y operación anteriores.
-La arquitectura y la evidencia de QA describen la implementación verificada.
-La sección 14 define la cuarta etapa, microSaaS, todavía en implementación: cuentas con
-Better Auth, verificación mediante Resend y conexiones con claves propias desde
-la interfaz. El modelo de cobro queda pendiente entre suscripción y créditos.
+Estado: base manual, canales/IA, preparación de agentes y cloud publicados. Cuentas,
+verificación por correo, claves propias, suscripciones con créditos y preparación
+automática de proveedores están implementadas; la evidencia y los límites de QA
+se conservan en docs/qa. Las secciones 1–9 documentan la primera etapa histórica;
+las posteriores sustituyen sus restricciones cuando lo indican.
 
-Actualizado: 2026-09-25. Fuente: [CONCEPTO.md](CONCEPTO.md) y alcance acordado por etapas.
+La sección 15 define la simplificación de la experiencia, mediante
+`simplify-daily-work`. No redefine las conexiones automáticas ni permite crear
+herramientas desde la interfaz.
+
+Actualizado: 2026-09-26. Fuente: [CONCEPTO.md](CONCEPTO.md) y alcance acordado por etapas.
 
 ## 1. Objetivo
 
@@ -816,11 +813,9 @@ redacción. Los contratos deberán contrastarse de nuevo al implementar.
 
 ## 14. Cuarta etapa: microSaaS con cuentas y conexiones propias
 
-Estado: implementación local y verificación en
-[`cloud-accounts-and-provider-keys`](../openspec/changes/cloud-accounts-and-provider-keys/proposal.md).
-Cuentas, conexiones y aislamiento implementados y probados con datos sintéticos;
-pendientes la verificación real del dueño y la activación productiva.
-Ver [QA microSaaS](qa/MICROSAAS.md). El registro público todavía no está habilitado en producción.
+Estado: cuentas cloud publicadas, con registro y dueño verificado. Ver
+[QA microSaaS](qa/MICROSAAS.md), [publicación cloud](qa/PUBLICACION-CLOUD.md) y
+[preparación automática](qa/PREPARACION-AUTOMATICA.md) para evidencia y límites de verificación.
 La decisión de cobro no bloquea las cuentas ni las conexiones. El
 [checklist microSaaS](checklists/CHECKLIST-MICROSAAS.md) es una plantilla reutilizable
 para el curso y otras aplicaciones: primero correos con Resend, después usuarios y
@@ -1005,3 +1000,40 @@ webhook por espacio. Estado visible en la conexión; error persistente seguro y
 reintento sin volver a guardar credenciales. La facturación y exención del dueño se
 respetan. Cambiar un proveedor no invalida la preparación del otro. La activación IA
 del canal sigue siendo explícita; lectura/reinicio no ejecutan pasos externos.
+
+## 15. Quinta etapa: operación y configuración simples
+
+Alcance acordado: simplificar la experiencia existente. Implementación en
+`simplify-daily-work`; pruebas guardadas, webhook de resultados y otras ampliaciones
+siguen fuera de esta entrega.
+
+- **Agentes:** instrucciones editables directamente y prueba al lado en escritorio.
+  En móvil, Probar abre el chat sin perder el borrador y permite volver al editor.
+  La prueba usa instrucciones guardadas y lo indica si hay cambios pendientes.
+  Guardar conserva orden, activación e historial de prompts y rechaza conflictos
+  sin cambios parciales. Los prompts compartidos identifican otros agentes afectados.
+- **Contexto y herramientas:** secciones visibles dentro del editor, sin pestañas
+  anidadas. Archivos conservan carga, estados y descarga. Las herramientas son
+  funciones nativas implementadas en código; solo se selecciona cuáles puede usar
+  el agente. No se ofrecen creación, edición de definición ni código en frontend.
+  Biblioteca de prompts secundaria para reutilización y asociaciones avanzadas.
+- **Canales:** cuenta, agente y atención IA reunidos, con acción directa para cada
+  bloqueo. Guardar IA ya comprueba la conexión y guardar Zernio ya registra el
+  webhook. Esto se mantiene; activar respuestas continúa siendo explícito.
+- **Primer uso:** progreso real de IA, canal, agente con instrucciones/asignación y
+  prueba exitosa de instrucciones guardadas. Desaparece al completar; solo se
+  conserva el logro de prueba, sin almacenar mensajes. Consultar no llama proveedores.
+- **Conversaciones:** acceso visible a Necesitan atención (abiertas manuales o con
+  entrega fallida/incierta), quién responde y Tomar control/Devolver a IA. Mantener
+  los avisos de entrega y el estado de revisión sin afirmar entregas no confirmadas.
+- **Navegación:** Conversaciones, Agentes, Canales y Contactos como principales;
+  Seguimiento agrupa Tickets/Pipelines; Ajustes reúne cuenta, conexiones, directorio
+  de responsables, API y facturación. Administración sigue restringida al dueño.
+  Conservar rutas directas y filtros; no confundir el directorio con usuarios de login.
+- **Formularios:** creación del agente pide nombre; descripción y disponibilidad
+  se editan cuando se necesitan. Escribir instrucciones ocurre en el editor directo.
+
+Aceptación: completar preparación y prueba sin ir al catálogo de prompts; editar
+sin perder borradores por cambio de panel, error o conflicto; guía sin éxitos
+inventados; acciones de canal resuelven el bloqueo mostrado. Verificar teclado,
+390/768/1440 px, temas claro/oscuro y API con SQLite y proveedores sintéticos.

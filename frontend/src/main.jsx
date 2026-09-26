@@ -4,10 +4,11 @@ import '../../landing/brand.css';
 import './style.css';
 import { api } from './api.js';
 import { ApiKeysPage } from './agent-workbench.jsx';
-import { CloudLogin, ProviderConnection } from './cloud.jsx';
+import { CloudLogin } from './cloud.jsx';
 import { BillingPage, CloudAdmin } from './billing.jsx';
 import { Icon } from './icons.jsx';
-import { resources, resourceEntries } from '../../shared/resources.js';
+import { SettingsPage, SetupGuide, ConnectionSummary } from './workspace.jsx';
+import { resources } from '../../shared/resources.js';
 import { Notice, useConfirm } from './components.jsx';
 import { ConversationInbox, RecordDetail, RecordForm, ResourceList } from './records.jsx';
 function getRoute() {
@@ -21,7 +22,7 @@ function getRoute() {
   return {
     raw,
     resource:
-      Object.hasOwn(resources, resource) || ['api_keys','cloud_accounts','billing'].includes(resource) ? resource : 'conversations',
+      Object.hasOwn(resources, resource) || ['api_keys','cloud_accounts','billing','settings'].includes(resource) ? resource : 'conversations',
     id,
     query,
   };
@@ -239,8 +240,8 @@ function App() {
         {dialog}
       </>
     );
-  const def = resources[route.resource] || { label: route.resource === 'cloud_accounts' ? 'Administración' : route.resource === 'billing' ? 'Facturación' : 'Claves API', group: 'Configuración' };
-  const activeSection = def.navigationParent || route.resource;
+  const def = resources[route.resource] || { label: route.resource === 'cloud_accounts' ? 'Administración' : route.resource === 'billing' ? 'Facturación' : route.resource === 'settings' ? 'Ajustes' : 'Claves API', group: 'Configuración' };
+  const activeSection = ['settings','api_keys','billing','cloud_accounts','users'].includes(route.resource) ? 'settings' : ['tickets','pipelines','pipeline_stages'].includes(route.resource) ? 'tickets' : def.navigationParent || route.resource;
   const back =
     route.resource === 'conversations' && route.id && route.id !== 'new'
       ? `/conversations${route.query ? `?${route.query}` : ''}`
@@ -289,11 +290,17 @@ function App() {
           Cerrar menú
         </button>
         <nav>
-          {['Operación', 'Configuración'].map((group) => (
+          {['Principal', 'Espacio'].map((group) => (
             <div className="nav-group" key={group}>
               <p className="nav-label">{group}</p>
-              {[...resourceEntries, ['api_keys', { label: 'Claves API', group: 'Configuración' }], ...(mode === 'cloud' ? [['billing',{label:'Facturación',group:'Configuración'}]] : []), ...(session.role === 'superadmin' ? [['cloud_accounts',{label:'Administración',group:'Configuración'}]] : [])]
-                .filter(([, r]) => r.group === group)
+              {[
+                ['conversations', { label: 'Conversaciones', group: 'Principal' }],
+                ['ai_agents', { label: 'Agentes', group: 'Principal' }],
+                ['channels', { label: 'Canales', group: 'Principal' }],
+                ['contacts', { label: 'Contactos', group: 'Principal' }],
+                ['tickets', { label: 'Seguimiento', group: 'Espacio' }],
+                ['settings', { label: 'Ajustes', group: 'Espacio' }],
+              ].filter(([, r]) => r.group === group)
                 .map(([key, r]) => (
                   <button
                     key={key}
@@ -370,27 +377,13 @@ function App() {
         </header>
         <main id="main-content" className="content" data-resource={route.resource} tabIndex="-1">
           <Notice error>{globalError}</Notice>
-          {activeSection === 'ai_agents' &&
-            !(route.resource === 'ai_agents' && route.id && route.id !== 'new') && (
-              <nav className="module-navigation" aria-label="Configuración de Agentes IA">
-                {[
-                  ['ai_agents', 'Agentes'],
-                  ['prompts', 'Prompts'],
-                  ['tools', 'Herramientas'],
-                ].map(([key, label]) => (
-                  <button
-                    key={key}
-                    className={`module-link ${route.resource === key ? 'active' : ''}`}
-                    aria-current={route.resource === key ? 'page' : undefined}
-                    onClick={() => navigate(listRoutes.current[key] || `/${key}`)}
-                  >
-                    <Icon name={key} />
-                    {label}
-                  </button>
-                ))}
-              </nav>
-            )}
-          {route.resource === 'cloud_accounts' ? (
+          {activeSection === 'settings' && route.resource !== 'settings' && <button className="back-link" onClick={() => navigate('/settings')}>← Ajustes</button>}
+          {activeSection === 'tickets' && !route.id && <nav className="module-navigation" aria-label="Seguimiento">{[['tickets','Tickets'],['pipelines','Pipelines']].map(([key,label]) => <button key={key} className={`module-link ${route.resource === key ? 'active' : ''}`} aria-current={route.resource === key ? 'page' : undefined} onClick={() => navigate(listRoutes.current[key] || `/${key}`)}>{label}</button>)}</nav>}
+          {['prompts','tools'].includes(route.resource) && <button className="back-link" onClick={() => navigate('/ai_agents')}>← Agentes</button>}
+          {route.resource === 'conversations' && !route.id && <SetupGuide version={version} navigate={navigate}/>}
+          {route.resource === 'settings' ? (
+            <SettingsPage section={route.id} session={session} mode={mode} navigate={navigate} refresh={refresh} setDirty={setDirty} confirm={confirm}/>
+          ) : route.resource === 'cloud_accounts' ? (
             session.role === 'superadmin' ? <CloudAdmin section={route.id} navigate={navigate} confirm={confirm} setDirty={setDirty}/> : <Notice error>No tienes acceso a la administración.</Notice>
           ) : route.resource === 'billing' && mode === 'cloud' ? (
             <BillingPage/>
@@ -469,7 +462,7 @@ function App() {
               navigate={navigate}
               open={open}
               onCreate={() => navigate(`/${route.resource}/new`)}
-              connection={['channels','ai_agents'].includes(route.resource) ? (onConfigured) => <ProviderConnection onConfigured={onConfigured} key={`provider-${route.resource}`} provider={route.resource === 'channels' ? 'zernio':'llm'} onSaved={refresh} setDirty={setDirty} confirm={confirm} /> : undefined}
+              connection={['channels','ai_agents'].includes(route.resource) ? () => <ConnectionSummary provider={route.resource === 'channels' ? 'zernio' : 'llm'} version={version} navigate={navigate}/> : undefined}
             />
           )}
         </main>

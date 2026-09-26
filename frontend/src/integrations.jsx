@@ -300,8 +300,12 @@ export function ChannelAutomation({ record, refresh, version, setDirty, confirm,
   const [agent, setAgent] = useState(record.default_ai_agent_id || '');
   const [editing, setEditing] = useState(false);
   const agentTrigger = useRef();
+  const readiness = useData('/integrations', version, { preserve: true, pollMs: 10000 });
+  const mode = useData('/public-config');
+  const billing = useData(mode.data?.mode === 'cloud' ? '/billing' : null, version, { preserve: true, pollMs: 10000 });
   const a = useAction(refresh);
   const savedAgent = record.default_ai_agent_id || '';
+  const agentReadiness = useData(savedAgent ? `/ai_agents/${savedAgent}/integration` : null, version, { preserve: true });
   const agentChanged = String(agent) !== String(savedAgent);
   const assigned = useData(savedAgent ? `/ai_agents/${savedAgent}` : null, version, {
     preserve: true,
@@ -327,17 +331,22 @@ export function ChannelAutomation({ record, refresh, version, setDirty, confirm,
   const enabled = !!record.automation_enabled;
   const platform = record.kind === 'instagram' ? 'Instagram' : 'WhatsApp';
   const connected = record.connection_status === 'connected';
-  const activationHelp = agentChanged
-    ? 'Guarda el agente seleccionado antes de activar las respuestas.'
-    : !savedAgent
-      ? 'Asigna un agente para activar las respuestas.'
-      : !connected
-        ? `Conecta ${platform} para activar las respuestas.`
-        : !record.inbox_verified_at
-          ? 'Sincroniza los mensajes del canal para activar las respuestas.'
-          : !record.active
-            ? 'Activa este canal en su configuración para habilitar las respuestas.'
-            : '';
+  const blockedBilling = billing.data?.enabled && !billing.data?.owner_exempt && (!billing.data.period || billing.data.period.available < 1);
+  const blocker = agentChanged ? { message: 'Guarda el agente seleccionado antes de activar las respuestas.' }
+    : !connected ? { message: `Conecta ${platform} para recibir mensajes.`, label: `Conectar ${platform}`, action: reconnect }
+    : !record.active ? { message: 'Este canal está inactivo.', label: 'Habilitar canal', action: () => a.act(() => api(`/channels/${record.id}`, { method: 'PATCH', body: { active: true } }), 'Canal habilitado.') }
+    : readiness.data && !readiness.data.zernio.configured ? { message: 'Conecta tu cuenta de Zernio para recibir mensajes.', label: 'Configurar Zernio', action: () => open('settings', 'zernio') }
+    : !record.inbox_verified_at ? { message: 'Falta comprobar el acceso a los mensajes.', label: 'Sincronizar mensajes', action: () => a.act(() => api('/integrations/sync', { method: 'POST', body: {} }), 'Sincronización iniciada.') }
+    : !savedAgent ? { message: 'Elige quién responderá en este canal.', label: 'Asignar agente', action: () => setEditing(true) }
+    : assigned.data && !assigned.data.active ? { message: 'El agente asignado está inactivo.', label: 'Abrir agente', action: () => open('ai_agents', savedAgent) }
+    : agentReadiness.data && !agentReadiness.data.has_instructions ? { message: 'El agente necesita instrucciones.', label: 'Escribir instrucciones', action: () => open('ai_agents', savedAgent) }
+    : blockedBilling ? { message: billing.data.period ? 'No quedan créditos disponibles.' : 'Necesitas una suscripción vigente.', label: 'Ir a Facturación', action: () => open('billing', '') }
+    : readiness.error || billing.error || mode.error || assigned.error || agentReadiness.error ? { message: 'No se pudo comprobar la disponibilidad.', label: 'Reintentar', action: () => { readiness.retry(); billing.retry(); mode.retry(); assigned.retry(); agentReadiness.retry(); } }
+    : !readiness.data || !mode.data || (savedAgent && (!assigned.data || !agentReadiness.data)) || (mode.data.mode === 'cloud' && !billing.data) ? { message: 'Comprobando disponibilidad…' }
+    : !readiness.data.llm.validated ? { message: 'Falta preparar la conexión IA.', label: 'Resolver conexión IA', action: () => open('settings', 'llm') }
+    : !readiness.data.zernio.webhookRegistered ? { message: 'Falta preparar la recepción de mensajes.', label: 'Resolver conexión Zernio', action: () => open('settings', 'zernio') }
+    : null;
+  const activationHelp = blocker?.message || '';
   async function reconnect() {
     const data = await a.act(
       () =>
@@ -405,6 +414,80 @@ export function ChannelAutomation({ record, refresh, version, setDirty, confirm,
           </button>
         )}
       </div>
+      <div className="assigned-agent-section">
+        <div className="section-heading">
+          <h2>Agente asignado</h2>
+          {!editing && (
+            <button
+              ref={agentTrigger}
+              className="text-button"
+              disabled={a.busy}
+              onClick={() => {
+                setEditing(true);
+                requestAnimationFrame(() => document.querySelector('.channel-agent-editor')?.focus());
+              }}
+            >
+              {savedAgent ? 'Cambiar' : 'Asignar agente'}
+            </button>
+          )}
+        </div>
+        {editing ? (
+          <form className="channel-agent-editor" tabIndex="-1" aria-label="Cambiar agente del canal" onSubmit={save}>
+            <label htmlFor="channel-agent">Quién responderá cuando la IA esté activada</label>
+            <ReferenceSelect
+              id="channel-agent"
+              resource="ai_agents"
+              value={agent}
+              onChange={setAgent}
+              label="Agente que responde en este canal"
+              emptyLabel="Sin agente asignado"
+              disabled={a.busy}
+              version={version}
+              aria-describedby="channel-agent-help"
+            />
+            <p className="field-hint" id="channel-agent-help">
+              {enabled && !agent
+                ? 'Apaga la IA antes de quitar el agente.'
+                : `Guardar conserva la IA ${enabled ? 'activada' : 'apagada'}.`}
+            </p>
+            <div className="form-actions">
+              <button
+                className="button primary"
+                disabled={a.busy || !agentChanged || (enabled && !agent)}
+              >
+                {a.busy ? 'Guardando…' : 'Guardar agente'}
+              </button>
+              <button type="button" className="text-button" onClick={() => open('ai_agents', 'new')}>Crear agente</button>
+              <button type="button" className="button quiet" disabled={a.busy} onClick={cancel}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="assigned-agent">
+            <span className="row-symbol">
+              <Icon name="ai_agents" />
+            </span>
+            <div>
+              {savedAgent ? (
+                <LoadState state={assigned}>
+                  <button className="record-link" onClick={() => open('ai_agents', savedAgent)}>
+                    {assigned.data?.name || 'Agente asignado'}
+                  </button>
+                  <p className="muted">
+                    {assigned.data?.description || 'Instrucciones y conocimiento del agente'}
+                  </p>
+                </LoadState>
+              ) : (
+                <>
+                  <strong>Aún no hay un agente</strong>
+                  <p className="muted">Asigna uno para preparar la atención automática.</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       <div className="channel-response-settings">
         <div className="section-heading">
           <div>
@@ -449,79 +532,7 @@ export function ChannelAutomation({ record, refresh, version, setDirty, confirm,
               ? 'Apagar la IA conserva la conexión y el agente asignado.'
               : 'Activarla afecta nuevos mensajes; los chats en modo manual seguirán a tu cargo.')}
         </p>
-      </div>
-      <div className="assigned-agent-section">
-        <div className="section-heading">
-          <h2>Agente asignado</h2>
-          {!editing && (
-            <button
-              ref={agentTrigger}
-              className="text-button"
-              disabled={a.busy}
-              onClick={() => {
-                setEditing(true);
-                requestAnimationFrame(() => document.querySelector('.channel-agent-editor')?.focus());
-              }}
-            >
-              {savedAgent ? 'Cambiar' : 'Asignar agente'}
-            </button>
-          )}
-        </div>
-        {editing ? (
-          <form className="channel-agent-editor" tabIndex="-1" aria-label="Cambiar agente del canal" onSubmit={save}>
-            <label htmlFor="channel-agent">Quién responderá cuando la IA esté activada</label>
-            <ReferenceSelect
-              id="channel-agent"
-              resource="ai_agents"
-              value={agent}
-              onChange={setAgent}
-              label="Agente que responde en este canal"
-              emptyLabel="Sin agente asignado"
-              disabled={a.busy}
-              version={version}
-              aria-describedby="channel-agent-help"
-            />
-            <p className="field-hint" id="channel-agent-help">
-              {enabled && !agent
-                ? 'Apaga la IA antes de quitar el agente.'
-                : `Guardar conserva la IA ${enabled ? 'activada' : 'apagada'}.`}
-            </p>
-            <div className="form-actions">
-              <button
-                className="button primary"
-                disabled={a.busy || !agentChanged || (enabled && !agent)}
-              >
-                {a.busy ? 'Guardando…' : 'Guardar agente'}
-              </button>
-              <button type="button" className="button quiet" disabled={a.busy} onClick={cancel}>
-                Cancelar
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="assigned-agent">
-            <span className="row-symbol">
-              <Icon name="ai_agents" />
-            </span>
-            <div>
-              {savedAgent ? (
-                <LoadState state={assigned}>
-                  <button className="record-link" onClick={() => open('ai_agents', savedAgent)}>
-                    {assigned.data?.name || 'Agente asignado'}
-                  </button>
-                  <p className="muted">
-                    {assigned.data?.description || 'Instrucciones y conocimiento del agente'}
-                  </p>
-                </LoadState>
-              ) : (
-                <>
-                  <strong>Aún no hay un agente</strong>
-                  <p className="muted">Asigna uno para preparar la atención automática.</p>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        {!enabled && blocker?.action && <button className="button secondary resolve-channel" disabled={a.busy} onClick={blocker.action}>{blocker.label} →</button>}
       </div>
       <details className="technical-details connection-maintenance">
         <summary>Conexión y mantenimiento</summary>
@@ -530,56 +541,6 @@ export function ChannelAutomation({ record, refresh, version, setDirty, confirm,
           Reconectar {platform} <Icon name="arrow_out" />
         </button>
       </details>
-    </section>
-  );
-}
-export function AgentIntegration({ id, version, refresh }) {
-  const [revision, setRevision] = useState(0);
-  const a = useAction(() => {
-    setRevision((v) => v + 1);
-    refresh();
-  });
-  const state = useData(`/ai_agents/${id}/integration`, `${version}:${revision}`);
-  return (
-    <section className="integration-panel">
-      <div className="section-heading">
-        <div>
-          <h2>Conexión IA</h2>
-          <p className="muted">Conexión compartida por los agentes de este espacio. <a href="#/ai_agents">Gestionar conexión</a></p>
-        </div>
-        <button
-          className="button secondary"
-          disabled={a.busy || !state.data?.configured || !state.data?.model}
-          onClick={() =>
-            a.act(
-              () => api(`/ai_agents/${id}/validate`, { method: 'POST', body: {} }),
-              'Conexión comprobada.',
-            )
-          }
-        >
-          {a.busy ? 'Comprobando…' : 'Comprobar conexión'}
-        </button>
-      </div>
-      {a.feedback}
-      <LoadState state={state}>
-        {state.data && (
-          <>
-            <p className="muted">La comprobación usa dos llamadas al modelo y una herramienta de prueba. Son 3 créditos con facturación activa; las cuentas exentas solo registran el uso.</p>
-            <p>{state.data.validated ? 'Conexión comprobada' : 'Comprobación pendiente'}</p>
-            {!state.data.configured && (
-              <p className="muted">
-                Completa la conexión IA desde el listado de agentes.
-              </p>
-            )}
-            {state.data.tools.map((t) => (
-              <p key={t.id} className="muted">
-                {t.name}:{' '}
-                {t.executable ? 'Función disponible' : 'Definición sin función ejecutable'}
-              </p>
-            ))}
-          </>
-        )}
-      </LoadState>
     </section>
   );
 }
@@ -615,7 +576,7 @@ export function ConversationIntegration({ record, version, refresh, setDirty, co
             <Icon name={record.automation_mode === 'automatic' ? 'ai_agents' : 'users'} />
             {record.automation_mode === 'automatic' ? 'Atención con IA' : 'Atención humana'}
           </h2>
-          <p className="muted">{record.effective_agent_name || 'Sin agente asignado'}</p>
+          <p className="muted">{record.automation_mode === 'automatic' ? record.effective_agent_name || 'Agente del canal' : record.labels?.assigned_user_id || 'Una persona tiene el control'}</p>
         </div>
         <div className="inline-actions">
           <button
@@ -632,7 +593,7 @@ export function ConversationIntegration({ record, version, refresh, setDirty, co
               )
             }
           >
-            {record.automation_mode === 'automatic' ? 'Tomar control' : 'Reanudar IA'}
+            {record.automation_mode === 'automatic' ? 'Tomar control' : 'Devolver a IA'}
           </button>
           <button
             className="button quiet icon-button sync-messages"

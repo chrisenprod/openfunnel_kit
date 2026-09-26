@@ -80,13 +80,13 @@ retomar automatización. El panel no muestra secretos ni conversaciones ajenas.
 
 ## Conectar tus proveedores
 
-En **Canales → Configurar Zernio** introduce la API key de tu cuenta de
+En **Ajustes → Conexión Zernio** introduce la API key de tu cuenta de
 [Zernio](https://zernio.com). Después, usa **Conectar canal** o **Sincronizar canales**.
 La recepción queda preparada automáticamente al guardar la clave. La interfaz ya no ofrece
 crear canales manuales; los registros existentes se conservan.
 Cada espacio tiene una URL y una firma propias; no copies el webhook de otro espacio.
 
-En **Agentes IA → Configurar proveedor de IA** introduce URL base, API key y modelo
+En **Ajustes → Conexión IA** introduce URL base, API key y modelo
 o deployment. Todos los agentes del espacio comparten esa conexión. Para Azure,
 usa el endpoint v1 y el nombre del deployment. No hay campos de proveedor/modelo
 en el formulario individual de cada agente.

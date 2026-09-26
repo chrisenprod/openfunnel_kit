@@ -1,6 +1,6 @@
 # Usar la app
 
-La barra lateral organiza el trabajo y la configuración. Los listados permiten buscar, filtrar y abrir cada registro. Los cambios se guardan al confirmar el formulario.
+La barra lateral da acceso a Conversaciones, Agentes, Canales y Contactos. Seguimiento agrupa Tickets y Pipelines; Ajustes reúne cuenta, conexiones, responsables, API y facturación. Los listados permiten buscar, filtrar y abrir cada registro. Los cambios se guardan al confirmar el formulario.
 
 ## Contactos, conversaciones y mensajes
 
@@ -10,17 +10,21 @@ Crear o editar un registro de mensaje manual solo modifica SQLite. El envío con
 
 ## Tickets y pipelines
 
-Un ticket representa el trabajo pendiente y puede vincularse a una conversación. Cada pipeline define sus etapas; puedes ver tickets en lista o tablero. El directorio de Usuarios permite asignar responsables, sin concederles acceso a la instalación.
+Un ticket representa el trabajo pendiente y puede vincularse a una conversación. Cada pipeline define sus etapas; puedes ver tickets en lista o tablero. El directorio de Responsables en Ajustes permite asignar responsables, sin concederles acceso a la instalación.
 
 ## Preparar un agente
 
-1. En **Prompts**, crea sus instrucciones: tarea, tono, límites y cuándo derivar a una persona.
-2. En **Agentes IA**, crea un agente y asocia los prompts en el orden deseado. Añade solo las herramientas necesarias.
-3. En **Contexto**, sube los documentos del negocio y comprueba el texto extraído.
-4. En **Probar**, conversa con el agente antes de conectarlo a un canal.
-5. Comprueba la conexión IA desde **Editar agente → Conexión IA** y asigna el agente al canal cuando estés listo.
+1. En **Ajustes → Conexión IA**, guarda tu proveedor. El modelo se comprueba automáticamente.
+2. En **Agentes**, crea un agente con su nombre y escribe sus instrucciones directamente. Guarda antes de probar.
+3. En **Contexto del negocio**, sube documentos y comprueba su texto. En **Herramientas**, selecciona las funciones nativas permitidas.
+4. Usa el chat de prueba junto al editor. En móvil, **Probar** abre el chat y **Volver al editor** conserva tus borradores.
+5. En **Canales**, asigna el agente y activa IA cuando estés listo. La cuenta, el agente y cualquier bloqueo aparecen juntos.
 
-El agente tiene una sola fila: **Instrucciones**, **Herramientas**, **Contexto** y **Probar**. Nombre y estado se cambian en **Editar agente**. Modelo y proveedor se configuran exclusivamente en el [entorno del servidor](./configuracion.html).
+La guía de primeros pasos en Conversaciones muestra progreso real y desaparece al completar conexión IA, canal, agente preparado/asignado y una prueba exitosa con instrucciones guardadas. Solo se registra el logro de prueba; su chat permanece temporal.
+
+La biblioteca de prompts es opcional: usa **Reutilizar instrucciones de la biblioteca** cuando quieras compartirlas. Nombre y disponibilidad se editan desde el encabezado del agente. Las conexiones pertenecen al espacio y se administran en Ajustes; el modo autohospedado conserva las variables de entorno.
+
+En Conversaciones, **Necesitan atención** filtra las abiertas en modo humano o con entregas fallidas/inciertas. **Tomar control** y **Devolver a IA** están en el hilo. Una entrega incierta sigue necesitando revisión humana.
 
 ## Prompts y restauración
 
@@ -30,10 +34,10 @@ Un prompt puede compartirse entre agentes. Revisa los agentes afectados antes de
 
 ## Herramientas y control humano
 
-Las funciones ejecutables actuales permiten leer el contacto, consultar el ticket vinculado y derivar a una persona. Crear una definición de herramienta no añade una función de servidor ni permite ejecutar código arbitrario.
+Las funciones ejecutables actuales permiten leer el contacto, consultar el ticket vinculado y derivar a una persona. Estas funciones están implementadas en el servidor. La interfaz solo permite seleccionarlas para el agente; no crea ni edita herramientas.
 
 El modo humano pausa la automatización. Los envíos de resultado incierto necesitan revisión: no los reintentes a ciegas. Cambiar prompts, documentos o configuración durante una generación invalida el resultado pendiente en la siguiente comprobación; no puede deshacer un mensaje que el proveedor ya aceptó.
 
 ## Claves API
 
-En **Configuración → Claves API** puedes crear, consultar el uso y revocar credenciales para integraciones. El secreto se muestra una vez. Asigna permisos de lectura, edición de prompts o pruebas según la necesidad. Consulta los [ejemplos API](./api.html).
+En **Ajustes → Claves API** puedes crear, consultar el uso y revocar credenciales para integraciones. El secreto se muestra una vez. Asigna permisos de lectura, edición de prompts o pruebas según la necesidad. Consulta los [ejemplos API](./api.html).

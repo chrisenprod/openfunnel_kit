@@ -377,3 +377,23 @@ Sitio estático con paleta Campo de tinta, tipografía regular, navegación late
 (móvil en dos columnas), búsqueda de páginas y enlaces a secciones. Código con scroll
 horizontal propio. Sin login; enlace desde el footer de app, acceso y landing.
 Fuentes en docs/site y lista explícita de publicación en scripts/build-docs.js.
+
+
+### Operación simple (quinta etapa)
+
+La navegación prioriza Conversaciones, Agentes, Canales y Contactos. Seguimiento
+agrupa Tickets/Pipelines y Ajustes ofrece un índice de cuenta/conexiones/API/pagos.
+Los enlaces anteriores siguen disponibles. Las conexiones tienen resumen compacto
+en listados y su formulario propio en Ajustes; conservar marcas/enlaces de proveedores.
+
+Agentes usa editor directo y chat contiguo a partir de 1001 px. Debajo, Probar
+muestra el mismo chat montado y permite volver al editor conservando borradores.
+Contexto y herramientas son secciones visibles en la columna del editor; no hay
+pestañas del agente. Las herramientas son selecciones nativas con nombre y efecto,
+sin formularios de código. La biblioteca es un enlace secundario. Versiones y
+edición de nombre se abren explícitamente, con protección de cambios.
+
+La guía inicial tiene cuatro pasos derivados del servidor y desaparece al completar.
+La bandeja presenta Todas/Necesitan atención, sin sustituir filtros de canal. Canales
+reúne conexión, agente y activación, indicando un bloqueo con su acción de resolución.
+Estas reglas sustituyen las pestañas y la navegación de agentes de las secciones previas.

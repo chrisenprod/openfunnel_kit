@@ -998,6 +998,7 @@ export function createIntegrations(db, env, options = {}) {
     return {
       configured: llm.config.configured,
       model: model || null,
+      has_instructions: !!db.prepare('SELECT 1 FROM agent_prompts a JOIN prompts p ON p.id=a.prompt_id WHERE a.ai_agent_id=? AND p.active=1 LIMIT 1').get(id),
       validated: !!model && validated(model),
       tools: tools.map((t) => ({
         ...t,
