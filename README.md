@@ -21,7 +21,9 @@ La segunda etapa implementa canales Zernio (Instagram/WhatsApp), mensajería y a
 con SDK OpenAI sobre endpoint configurable, con Azure como proveedor de esta instalación.
 Configuración y límites en [la guía de integraciones](docs/deploy/INTEGRACIONES.md).
 La preparación de agentes añade [API keys, contexto, versiones de prompts y pruebas aisladas](docs/api/AGENTES.md)
-en la rama de desarrollo; no está desplegada en producción. MCP sigue pendiente. La verificación real
+en la app. Las API keys también permiten crear/configurar agentes y asignarlos a
+canales con IA desactivada; las herramientas nativas están disponibles en cada espacio.
+MCP sigue pendiente. La verificación real
 completa de respuestas se registra separadamente de las pruebas simuladas.
 
 La tercera etapa del PRD cubre infraestructura y producción. La app tiene un

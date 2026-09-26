@@ -14,9 +14,9 @@ function getRoute() {
   const raw = window.location.hash.slice(1) || '/conversations';
   const [path, query = ''] = raw.split('?');
   const [, resource, id] = path.split('/');
-  if (resource === 'channels' && id === 'new') {
-    history.replaceState(null, '', '#/channels');
-    return { raw: '/channels', resource: 'channels', id: undefined, query: '' };
+  if ((resource === 'channels' || resources[resource]?.readOnly) && id === 'new') {
+    history.replaceState(null, '', `#/${resource}`);
+    return { raw: `/${resource}`, resource, id: undefined, query: '' };
   }
   return {
     raw,

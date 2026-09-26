@@ -3,9 +3,11 @@ import { api } from './api.js';
 import { Icon } from './icons.jsx';
 import { LoadState, Notice, Pagination, useData } from './components.jsx';
 const scopes = [
-  ['resources:read', 'Leer recursos'],
-  ['prompts:write', 'Editar y restaurar prompts'],
-  ['agents:test', 'Probar agentes'],
+  ['resources:read', 'Leer recursos', 'Consultar datos de tu espacio.'],
+  ['prompts:write', 'Crear, editar y restaurar prompts', 'Preparar instrucciones y recuperar versiones.'],
+  ['agents:write', 'Crear y configurar agentes', 'Asignar instrucciones y herramientas nativas.'],
+  ['channels:assign', 'Asignar agente a un canal', 'Vincularlo dejando la IA desactivada.'],
+  ['agents:test', 'Probar agentes', 'Ejecutar pruebas que consumen tokens.'],
 ];
 const date = (value) => value ? new Date(value).toLocaleString('es-CL') : 'Sin uso';
 
@@ -93,7 +95,7 @@ export function ApiKeysPage({ confirm, setDirty }) {
           <fieldset disabled={busy}><legend className="sr-only">Datos de la clave</legend>
             <div className="field"><label htmlFor="key-name">Nombre de la integración</label><input ref={nameRef} id="key-name" placeholder="Ej. Mi tienda" value={name} maxLength={80} required onChange={(e) => { setName(e.target.value); setChanged(true); }} /></div>
             <div className="field"><label htmlFor="key-days">Vigencia</label><div className="input-suffix"><input id="key-days" type="number" min="1" max="365" required value={days} onChange={(e) => { setDays(e.target.value); setChanged(true); }} /><span>días</span></div><span className="field-hint">Entre 1 y 365 días desde su creación.</span></div>
-            <fieldset className="permission-list"><legend>Permisos</legend>{scopes.map(([key, label], index) => <label key={key}><input type="checkbox" checked={selected.includes(key)} onChange={(e) => { setSelected((s) => e.target.checked ? [...s, key] : s.filter((v) => v !== key)); setChanged(true); }} /><span><strong>{label}</strong><small>{['Consultar datos de esta instalación.', 'Actualizar instrucciones y recuperar versiones.', 'Ejecutar pruebas que consumen tokens.'][index]}</small></span></label>)}</fieldset>
+            <fieldset className="permission-list"><legend>Permisos</legend>{scopes.map(([key, label, description]) => <label key={key}><input type="checkbox" checked={selected.includes(key)} onChange={(e) => { setSelected((s) => e.target.checked ? [...s, key] : s.filter((v) => v !== key)); setChanged(true); }} /><span><strong>{label}</strong><small>{description}</small></span></label>)}</fieldset>
             <div className="form-actions"><button className="button primary" disabled={!selected.length}>{busy ? 'Creando…' : 'Crear clave'}</button><button type="button" className="button quiet" onClick={close}>Cancelar</button></div>
           </fieldset>
         </form>}

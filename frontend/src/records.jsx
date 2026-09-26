@@ -352,7 +352,8 @@ function Associations({ label, resource, ids, original, onChange, version, error
           options={[
             { value: '', label: 'Seleccionar…' },
             ...options
-              .filter((x) => !ids.includes(x.id) && (x.active || original.includes(x.id)))
+              .filter((x) => !ids.includes(x.id) && (x.active || original.includes(x.id)) &&
+                (resource !== 'tools' || x.id === `builtin_${x.kind}` || original.includes(x.id)))
               .map((x) => ({ value: x.id, label: `${x.name}${!x.active ? ' (inactivo)' : ''}` })),
           ]}
         />
@@ -659,7 +660,7 @@ export function ResourceList({ resource, query, version, navigate, open, onCreat
           </h1>
           {def.note && <p className="muted">{def.note}</p>}
         </div>
-        {resource !== 'channels' && <button
+        {!def.readOnly && resource !== 'channels' && <button
           className={`button ${resource === 'ai_agents' && !connectionConfigured ? 'secondary' : 'primary'}`}
           onClick={onCreate}
         >
@@ -763,9 +764,9 @@ export function ResourceList({ resource, query, version, navigate, open, onCreat
                   <p className="muted">
                     {filtered
                       ? 'Prueba otros filtros o inicia una nueva búsqueda.'
-                      : resource === 'channels' ? 'Tus canales aparecerán aquí al conectarlos o sincronizarlos desde Zernio.' : `Crea tu primer registro para comenzar.`}
+                      : resource === 'channels' ? 'Tus canales aparecerán aquí al conectarlos o sincronizarlos desde Zernio.' : def.readOnly ? 'No hay herramientas disponibles con estos criterios.' : `Crea tu primer registro para comenzar.`}
                   </p>
-                  {(filtered || resource !== 'channels') && <button
+                  {(filtered || (!def.readOnly && resource !== 'channels')) && <button
                     className="button secondary"
                     onClick={filtered ? () => navigate(`/${resource}`, false) : onCreate}
                   >
@@ -1174,12 +1175,12 @@ export function RecordDetail({
                       Abrir bandeja
                     </button>
                   )}
-                  <DetailActions
+                  {!def.readOnly && <DetailActions
                     edit={edit}
                     erase={erase}
                     deleting={deleting}
                     compact={resource === 'channels'}
-                  />
+                  />}
                 </div>
               )}
             </div>

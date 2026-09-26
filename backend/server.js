@@ -7,8 +7,9 @@ import { detail, list, save, remove, HttpError, publicError } from './resources.
 import { resources } from '../shared/resources.js';
 import { createIntegrations } from './integrations.js';
 import { createDocuments, readUpload } from './documents.js';
-import { createKeyAccess } from './api-keys.js';
+import { createKeyAccess, objectBody } from './api-keys.js';
 import { createAgentTester, promptVersions, restorePrompt } from './agent-workbench.js';
+import { syncNativeTools } from './native-tools.js';
 import { createProviderConnections } from './provider-connections.js';
 
 export async function readBody(req) {
@@ -47,6 +48,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
   try {
     state = tenant ? { configured: true, origin: new URL(env.APP_ORIGIN).origin } : await createAuth(db, env);
     connections = createProviderConnections(db, env, tenant?.id);
+    syncNativeTools(db);
   } catch (error) {
     db.close();
     throw error;
@@ -104,7 +106,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         return res.end();
       }
       const integrationRoute = path.match(
-        /^\/api\/(?:integrations(?:\/([a-z_-]+))?|channels\/([\w-]+)\/(automation)|conversations\/([\w-]+)\/(mode|send|sync|activity)|ai_agents\/([\w-]+)\/(validate|integration)|outbound\/([\w-]+)\/(review)|events\/([\w-]+)\/(retry))$/,
+        /^\/api\/(?:integrations(?:\/([a-z_-]+))?|channels\/([\w-]+)\/(automation|agent)|conversations\/([\w-]+)\/(mode|send|sync|activity)|ai_agents\/([\w-]+)\/(validate|integration)|outbound\/([\w-]+)\/(review)|events\/([\w-]+)\/(retry))$/,
       );
       const documentRoute = path.match(/^\/api\/ai_agents\/([\w-]+)\/documents(?:\/([\w-]+)(\/download)?)?$/);
       const workbenchRoute = path.match(/^\/api\/(?:api-keys(?:\/([\w-]+)\/(revoke))?|prompts\/([\w-]+)\/(versions|restore)|ai_agents\/([\w-]+)\/(test))$/);
@@ -127,7 +129,9 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       if (apiKey) {
         let scope;
         if (req.method === 'GET' && (validMethod || documentRoute || workbenchRoute?.[4] === 'versions')) scope = 'resources:read';
-        if (req.method === 'PATCH' && validMethod && match[1] === 'prompts') scope = 'prompts:write';
+        if (['POST', 'PATCH'].includes(req.method) && validMethod && match[1] === 'prompts') scope = 'prompts:write';
+        if (['POST', 'PATCH'].includes(req.method) && validMethod && match[1] === 'ai_agents') scope = 'agents:write';
+        if (req.method === 'PUT' && integrationRoute?.[3] === 'agent') scope = 'channels:assign';
         if (req.method === 'POST' && workbenchRoute?.[4] === 'restore') scope = 'prompts:write';
         if (req.method === 'POST' && workbenchRoute?.[6] === 'test') scope = 'agents:test';
         if (!scope || !apiKey.scopes.includes(scope)) throw new HttpError(403, 'La clave no permite esta operación.');
@@ -245,6 +249,13 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         const get = req.method === 'GET';
         if (get && !action && !channelId && !conversationId && !agentId && !outboundId && !eventId)
           return send(res, 200, integrations.status());
+        if (channelAction === 'agent' && req.method === 'PUT') {
+          const body = await readBody(req);
+          objectBody(body, ['agent_id']);
+          if (typeof body.agent_id !== 'string' || !body.agent_id.trim())
+            throw new HttpError(400, 'Indica el agente que quieres asignar.');
+          return send(res, 200, integrations.automation(channelId, { agent_id: body.agent_id, enabled: false }));
+        }
         if (get && action === 'profiles') return send(res, 200, await integrations.profiles());
         if (get && conversationAction === 'activity')
           return send(res, 200, integrations.activity(conversationId));
@@ -261,7 +272,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
           result = await integrations.connect(body, session.session.id);
         else if (action === 'validate-model') result = await integrations.validateModel(body.model);
         else if (action === 'webhook') result = await integrations.registerWebhook();
-        else if (channelAction) result = integrations.automation(channelId, body);
+        else if (channelAction === 'automation') result = integrations.automation(channelId, body);
         else if (conversationAction === 'mode') result = integrations.mode(conversationId, body);
         else if (conversationAction === 'send') result = integrations.send(conversationId, body);
         else if (conversationAction === 'sync')
@@ -275,6 +286,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       const [, table, id] = match;
       if (req.method === 'GET')
         return send(res, 200, id ? detail(db, table, id) : list(db, table, url.searchParams));
+      if (resources[table].readOnly) throw new HttpError(403, 'Las herramientas nativas son de solo lectura.');
       if (req.method === 'DELETE') {
         remove(db, table, id);
         return send(res, 200, { ok: true });

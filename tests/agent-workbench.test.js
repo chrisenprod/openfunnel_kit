@@ -45,6 +45,28 @@ function agentFixture(db) {
   return { prompt, tool, agent };
 }
 
+test('Native catalogue survives app restart without duplication, reassignment or fingerprint changes', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'native-tools-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const databasePath = join(dir, 'app.sqlite');
+  const first = await createApp({ databasePath, env });
+  const legacy = save(first.db, 'tools', { name: 'Existing handoff', description: 'Legacy', kind: 'handoff_to_human' });
+  const agent = save(first.db, 'ai_agents', { name: 'Existing agent', tool_ids: [legacy.id] });
+  const snapshot = first.db.prepare('SELECT * FROM tools ORDER BY id').all();
+  assert.equal(snapshot.length, 4);
+  first.db.close();
+  const restarted = await createApp({ databasePath, env });
+  try {
+    assert.deepEqual(restarted.db.prepare('SELECT * FROM tools ORDER BY id').all(), snapshot);
+    assert.deepEqual(restarted.db.prepare('SELECT tool_id FROM agent_tools WHERE ai_agent_id=?').all(agent.id).map(row => row.tool_id), [legacy.id]);
+    const empty = save(restarted.db, 'ai_agents', { name: 'No tools selected' });
+    assert.deepEqual(empty.tool_ids, []);
+    const handoff = restarted.db.prepare('SELECT * FROM tools WHERE id=?').get('builtin_handoff_to_human');
+    assert.equal(handoff.active, 1);
+    assert.deepEqual(JSON.parse(handoff.input_schema).required, ['reason']);
+  } finally { restarted.db.close(); }
+});
+
 test('API keys: secrets shown once, scoped access, Origin preserved, revoked and expired keys fail', async (t) => {
   const a = await start(t); const { prompt, agent } = agentFixture(a.db);
   const key = await a.key(['resources:read']);

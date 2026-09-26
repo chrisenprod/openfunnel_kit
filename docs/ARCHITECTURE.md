@@ -172,7 +172,10 @@ canal/conversación/agente conservan protección de origen. Las credenciales nun
 se entregan al frontend. Los mensajes remotos no admiten el CRUD manual de contenido.
 
 Las tools ejecutables son `get_contact`, `get_ticket` y `handoff_to_human`. El catálogo
-no ejecuta código ni URLs. La cola separa generación de envío, invalida respuestas
+se sincroniza con IDs `builtin_*` al abrir cada base de negocio mediante
+`backend/native-tools.js`. GET es público autenticado; sus definiciones no tienen
+CRUD en UI/API. Se conservan referencias heredadas y la selección explícita por agente.
+No ejecuta código ni URLs arbitrarias. La cola separa generación de envío, invalida respuestas
 obsoletas y deja resultados ambiguos pendientes de revisión, sin reenvío automático.
 
 No están incluidos MCP, RAG, campañas, comentarios,
@@ -187,7 +190,11 @@ Implementadas en desarrollo mediante `agent-workbench`, sin despliegue. Migraci�
 añade `agent_documents`: original BLOB, texto extraído, metadata, estado y revisión.
 Las claves guardan hash de un secreto aleatorio y
 permisos explícitos. `backend/api-keys.js` autentica Bearer; el servidor permite solo
-lectura, edición/restauración de prompts y pruebas según scope. Sesiones conservan
+lectura, creación/edición/restauración de prompts, creación/configuración de agentes,
+asignación de canal con IA desactivada y pruebas según scope. `agents:write` y
+`channels:assign` no se conceden automáticamente a claves antiguas. PUT
+`/api/channels/:id/agent` solo admite `agent_id`, reutiliza la configuración de
+automatización con `enabled:false` y nunca llama al proveedor. Sesiones conservan
 Origin y no se mezclan con Bearer. Gestión de claves reservada al administrador.
 
 `resources.js` guarda versiones de prompts con autor dentro de la transacción y

@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { HttpError } from './resources.js';
 
-export const keyScopes = ['resources:read', 'prompts:write', 'agents:test'];
+export const keyScopes = ['resources:read', 'prompts:write', 'agents:write', 'channels:assign', 'agents:test'];
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const publicKey = ({ secret_hash, scopes, ...key }) => ({ ...key, scopes: JSON.parse(scopes) });
 export function objectBody(body, fields) {

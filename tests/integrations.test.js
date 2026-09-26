@@ -7,6 +7,7 @@ import { save, remove } from '../backend/resources.js';
 import { createLLM } from '../backend/llm.js';
 import { createBilling } from '../backend/billing.js';
 import { createApp } from '../backend/server.js';
+import { syncNativeTools } from '../backend/native-tools.js';
 import { once } from 'node:events';
 const env = {
   ZERNIO_API_KEY: 'test-zernio-secret',
@@ -411,6 +412,44 @@ test('Tools: authorized context and recorded execution, unknown function rejecte
   assert.equal(a.get('tool_runs').at(-1).status, 'rejected');
   assert.equal(a.get('outbound_messages').length, 1);
 });
+test('Native handoff pauses only its conversation and prevents further AI replies', async t => {
+  let live = false, calls = 0;
+  const a = fixture(t, { complete: async input => {
+    if (!live && !input.tool_choice) return { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: 'Ready' } }] };
+    const name = live ? 'handoff_to_human' : 'connection_probe';
+    if (live) {
+      calls++;
+      assert.ok(input.tools.some(tool => tool.function.name === 'handoff_to_human'));
+    }
+    return { choices: [{ finish_reason: 'tool_calls', message: { role: 'assistant', tool_calls: [
+      { id: 'handoff', type: 'function', function: { name, arguments: JSON.stringify(live ? { reason: 'Quiere hablar con una persona.' } : {}) } },
+    ] } }] };
+  } });
+  syncNativeTools(a.db);
+  await a.setup();
+  const agent = await a.agent();
+  save(a.db, 'ai_agents', { tool_ids: ['builtin_handoff_to_human'] }, agent.id);
+  const contact = save(a.db, 'contacts', { name: 'Another contact' });
+  const channel = save(a.db, 'channels', { name: 'Other channel', kind: 'manual' });
+  const other = save(a.db, 'conversations', { title: 'Unrelated', contact_id: contact.id, channel_id: channel.id });
+  const before = a.db.prepare('SELECT * FROM conversations WHERE id=?').get(other.id);
+  live = true;
+  a.receive(a.incoming());
+  await a.i.tick();
+  const current = a.get('conversations').find(row => row.external_id === a.conversation.id);
+  assert.equal(current.automation_mode, 'manual');
+  assert.equal(current.pause_reason, 'Quiere hablar con una persona.');
+  assert.equal(a.get('agent_runs')[0].status, 'handed_off');
+  assert.equal(a.get('tool_runs')[0].name, 'handoff_to_human');
+  assert.equal(a.get('tool_runs')[0].status, 'completed');
+  assert.deepEqual(a.db.prepare('SELECT * FROM conversations WHERE id=?').get(other.id), before);
+  a.receive(a.incoming('after-handoff'));
+  await a.i.tick();
+  assert.equal(calls, 1);
+  assert.equal(a.get('outbound_messages').length, 0);
+  assert.equal(a.requests.filter(request => request.method === 'POST' && request.path.endsWith('/messages')).length, 0);
+});
+
 test('Concurrency: human takeover while model is generating prevents send', async (t) => {
   let release,
     started,
