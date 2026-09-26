@@ -119,6 +119,7 @@ export function createIntegrations(db, env, options = {}) {
       llm: {
         configured: llm.config.configured,
         model: llm.config.model || null,
+        validated: !!llm.config.model && validated(llm.config.model),
       },
       failedEvents: failed,
       syncJobs: jobs,
@@ -317,6 +318,8 @@ export function createIntegrations(db, env, options = {}) {
     return channel.id;
   }
   async function registerWebhook() {
+    const version = env.ZERNIO_CONNECTION_VERSION;
+    const fingerprint = webhookFingerprint();
     if (!env.ZERNIO_WEBHOOK_SECRET || env.ZERNIO_WEBHOOK_SECRET.length < 32)
       throw new HttpError(503, 'Configura ZERNIO_WEBHOOK_SECRET con al menos 32 caracteres.');
     const url = `${publicBase()}${env.WORKSPACE_PATH || '/api'}/integrations/zernio/webhook`;
@@ -338,6 +341,8 @@ export function createIntegrations(db, env, options = {}) {
     });
     const id = saved.webhook?._id || old?._id;
     contract(externalId(id));
+    if (version !== env.ZERNIO_CONNECTION_VERSION || fingerprint !== webhookFingerprint())
+      throw new HttpError(409, 'La conexión cambió durante la operación.');
     s.setSetting('webhook_id', id);
     s.setSetting('webhook_fingerprint', webhookFingerprint());
     return { ok: true };

@@ -329,3 +329,13 @@ estado activo y correo verificado del espacio. La migración 010 añade
 `billing_exempt_operations`, con las mismas reservas y recuperación que el ledger
 pagado. Historial une ambos; `owner_exempt` y `exempt_usage` describen acceso y uso
 sin simular un saldo ilimitado numérico. No altera períodos ni eventos Polar.
+
+### Preparación automática al guardar proveedores
+
+`backend/provider-setup.js` coordina guardado cifrado y validación IA/registro webhook,
+con estado derivado del runtime y errores/versiones en `integration_settings`. Un
+fallo externo no revierte el guardado: metadata devuelve `setup.status=failed`.
+POST de conexión reintenta con sesión, Origin y expected_version; un bloqueo por
+proveedor evita escrituras concurrentes. Se conservan checks de rotación y suspensión.
+La invalidación de conexiones solo borra la preparación del proveedor cambiado;
+la suspensión invalida ambas. No hay efectos externos en GET o reinicio.

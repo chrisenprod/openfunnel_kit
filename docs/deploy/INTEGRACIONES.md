@@ -47,12 +47,14 @@ backend local; esto por sí solo no traslada las cookies de localhost a ese domi
    completar consentimiento externo y regresar a OpenFunnel. Instagram requiere una
    cuenta profesional; WhatsApp Business permite Cloud API o coexistencia. Un número
    WhatsApp adicional necesita otro perfil; el formulario permite crearlo.
-3. Con HTTPS y secreto configurados, pulsar **Registrar / actualizar webhook**. Solo
-   se gestiona el webhook de OpenFunnel, con eventos privados y estados de conexión.
-4. En **Agentes IA**, asociar al menos un prompt activo, configurar el deployment y
-   pulsar **Validar modelo**. La prueba consume una pequeña solicitud al proveedor.
-5. Para tools ejecutables, crear/asociar definiciones cuyo **Tipo** sea `get_contact`,
-   `get_ticket` o `handoff_to_human`. Sus contratos son funciones internas: los campos
+3. Guardar la API key de Zernio registra automáticamente el webhook con HTTPS y
+   secreto configurados. Para conexiones anteriores pendientes, usar **Completar conexión**.
+   Solo se gestiona el webhook de OpenFunnel, con eventos privados y estados de conexión.
+4. Guardar el proveedor de IA comprueba automáticamente modelo y herramientas. La
+   comprobación usa dos llamadas y una tool: 3 créditos si corresponde facturación.
+   Un fallo queda visible junto al proveedor con **Reintentar conexión**.
+5. En **Agentes IA**, asociar un prompt activo y las herramientas nativas
+   `get_contact`, `get_ticket` o `handoff_to_human`. Sus contratos son funciones internas: los campos
    JSON del catálogo no autorizan código, SQL o URLs. El backend define el esquema
    efectivo y limita el contexto al contacto/ticket de la conversación.
 6. Abrir el canal, elegir agente y **Guardar agente**. Este botón conserva el estado

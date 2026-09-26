@@ -9,6 +9,7 @@ import { createIntegrations } from './integrations.js';
 import { createDocuments, readUpload } from './documents.js';
 import { createKeyAccess, objectBody } from './api-keys.js';
 import { createAgentTester, promptVersions, restorePrompt } from './agent-workbench.js';
+import { createProviderSetup } from './provider-setup.js';
 import { syncNativeTools } from './native-tools.js';
 import { createProviderConnections } from './provider-connections.js';
 
@@ -56,6 +57,7 @@ export async function createApp({ databasePath, env = process.env, integrationOp
   env = connections.env;
   const sessionFor = tenant ? tenant.session : req => getAdminSession(state, req);
   const integrations = createIntegrations(db, env, integrationOptions);
+  const providerSetup = createProviderSetup(db, connections, integrations);
   const keys = createKeyAccess(db);
   const documents = createDocuments(db);
   const testAgent = createAgentTester(db, env, integrationOptions.llmClient);
@@ -185,9 +187,10 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       }
       const actor = apiKey ? `api_key:${apiKey.id}` : tenant ? `user:${session.user.id}` : 'admin';
       if (providerRoute) {
-        if (req.method === 'GET') return send(res, 200, connections.metadata(providerRoute[1]));
-        if (req.method === 'PUT') return send(res, 200, connections.save(providerRoute[1], await readBody(req)));
-        if (req.method === 'DELETE') return send(res, 200, connections.remove(providerRoute[1], await readBody(req)));
+        if (req.method === 'GET') return send(res, 200, providerSetup.metadata(providerRoute[1]));
+        if (req.method === 'PUT') return send(res, 200, await providerSetup.save(providerRoute[1], await readBody(req)));
+        if (req.method === 'POST') return send(res, 200, await providerSetup.retry(providerRoute[1], await readBody(req)));
+        if (req.method === 'DELETE') return send(res, 200, providerSetup.remove(providerRoute[1], await readBody(req)));
         throw new HttpError(404, 'Ruta no encontrada.');
       }
       if (documentRoute) {

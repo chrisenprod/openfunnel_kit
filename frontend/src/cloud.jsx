@@ -110,6 +110,11 @@ export function ProviderConnection({ provider, onSaved, onConfigured, setDirty =
   const [notice,setNotice] = useState('');
   const [changed,setChanged] = useState(false);
   const current = state.data;
+  useEffect(() => {
+    if (current?.setup?.status !== 'running') return;
+    const timer = setTimeout(state.retry, 1500);
+    return () => clearTimeout(timer);
+  }, [current]);
   useEffect(() => { if (current) onConfigured?.(current.configured); }, [current?.configured, onConfigured]);
   function markDirty() { setDirty(true); setChanged(true); }
   async function toggleEditing() {
@@ -123,8 +128,17 @@ export function ProviderConnection({ provider, onSaved, onConfigured, setDirty =
     const body = Object.fromEntries([...new FormData(form)].filter(([,value])=>value !== ''));
     body.expected_version = current.version;
     setBusy(true); setError('');
-    try { await api(`/connections/${provider}`,{method:'PUT',body}); form.reset(); setEditing(false); setDirty(false); setChanged(false); setNotice(provider === 'zernio' ? 'API key guardada.' : 'Proveedor guardado. Valida el modelo desde tu agente antes de activar la IA.'); state.retry(); onSaved?.(); }
+    try { const saved = await api(`/connections/${provider}`,{method:'PUT',body}); form.reset(); setEditing(false); setDirty(false); setChanged(false); setNotice(saved.setup?.status === 'ready' ? provider === 'zernio' ? 'API key guardada y recepción de mensajes preparada.' : 'Proveedor guardado y modelo comprobado.' : 'Credenciales guardadas. La conexión necesita completar su preparación.'); state.retry(); onSaved?.(); }
     catch(e) { setError(e.message); } finally { setBusy(false); }
+  }
+  async function retrySetup() {
+    if (busy) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await api(`/connections/${provider}`, { method: 'POST', body: { expected_version: current.version } });
+      if (result.setup?.status === 'ready') setNotice(provider === 'zernio' ? 'Recepción de mensajes preparada.' : 'Modelo comprobado.');
+      state.retry(); onSaved?.();
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
   const isZernio = provider === 'zernio';
   const selectedProvider = llmProviders[llmPreset(current?.baseURL)]?.name || 'Proveedor compatible';
@@ -137,18 +151,26 @@ export function ProviderConnection({ provider, onSaved, onConfigured, setDirty =
     <div className="section-heading"><div>
       <h2>{isZernio ? 'Configurar canales con Zernio' : 'Configurar proveedor de IA'}</h2>
       <p className="muted">{isZernio
-        ? current.configured ? 'API key guardada. Ya puedes conectar o sincronizar tus canales.' : 'Conecta Instagram y WhatsApp usando tu cuenta de Zernio. Para empezar, guarda tu API key.'
+        ? current.configured ? 'Gestiona tus canales conectados con Zernio.' : 'Conecta Instagram y WhatsApp usando tu cuenta de Zernio. Para empezar, guarda tu API key.'
         : current.configured ? 'Una conexión compartida por todos los agentes de tu espacio.' : 'Elige dónde se ejecutan tus agentes. Guarda la URL, la API key y el modelo una sola vez para tu espacio.'}</p>
       {!isZernio && current.configured && <p className="llm-saved-model"><Icon name="ai_agents"/><span>{selectedProvider} · {current.model}</span></p>}
       {current.configured && !current.editable && <small className="muted">Configurada en el servidor.</small>}
     </div>{current.editable && <button className={`button ${!current.configured && !editing ? 'primary' : 'secondary'}`} onClick={toggleEditing} disabled={busy} aria-expanded={editing}>{editing ? 'Cerrar':current.configured ? isZernio ? 'Cambiar API key':'Cambiar proveedor':isZernio ? 'Configurar Zernio':'Configurar proveedor de IA'}</button>}</div>
     <Notice error>{error}</Notice><Notice>{notice}</Notice>
+    {current.configured && !editing && <div className="provider-readiness">
+      {current.setup?.status === 'ready' ? <p className="availability"><Icon name="check"/>{isZernio ? 'Recepción de mensajes preparada' : 'Modelo comprobado'}</p> : <>
+        <Notice error>{current.setup?.error}</Notice>
+        <p className="muted">{busy || current.setup?.status === 'running' ? isZernio ? 'Preparando recepción de mensajes…' : 'Comprobando modelo…' : isZernio ? 'Falta completar la recepción de mensajes.' : 'Falta comprobar el modelo.'}</p>
+        <button className="button secondary" disabled={busy || current.setup?.status === 'running'} onClick={retrySetup}>{busy ? 'Preparando…' : current.setup?.status === 'failed' ? 'Reintentar conexión' : 'Completar conexión'}</button>
+      </>}
+    </div>}
     {editing && <form onSubmit={submit} onChange={markDirty}><fieldset disabled={busy || !current.storageReady}><legend className="sr-only">Configurar conexión</legend>
       {isZernio && <p className="muted">Copia la API key de tu cuenta de Zernio y pégala aquí. Se guardará cifrada para tu espacio.</p>}
       {!current.storageReady && <Notice error>El administrador debe habilitar el almacenamiento cifrado. Consulta la documentación.</Notice>}
       {!isZernio && <LLMConnectionFields current={current} markDirty={markDirty}/>}
       {isZernio && !current.locked.includes('apiKey') && <div className="field"><label htmlFor="provider-zernio-key">{current.hasKey ? 'Nueva API key (vacío conserva la actual)':'API key'}</label><input id="provider-zernio-key" name="apiKey" type="password" autoComplete="off" required={!current.hasKey} maxLength={4096}/></div>}
-      <button className="button primary" disabled={busy}>{busy ? 'Guardando…':isZernio ? 'Guardar API key':'Guardar proveedor'}</button>
+      <p className="field-hint">{isZernio ? 'Al guardar, registramos automáticamente la recepción de mensajes. No se activa la IA del canal.' : 'Al guardar, comprobamos automáticamente el modelo y sus herramientas. La comprobación usa 3 créditos con facturación activa, salvo cuentas exentas; el proveedor puede cobrar tokens.'}</p>
+      <button className="button primary" disabled={busy}>{busy ? isZernio ? 'Guardando y preparando…' : 'Guardando y comprobando…':isZernio ? 'Guardar API key':'Guardar proveedor'}</button>
     </fieldset></form>}
   </>}</LoadState></section>;
 }
