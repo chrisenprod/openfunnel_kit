@@ -1,8 +1,9 @@
 # API para agentes externos
 
-Esta entrega permite leer recursos, editar/restaurar prompts y probar agentes.
-No permite a una clave enviar mensajes, borrar registros, activar canales ni editar
-herramientas. Las claves corresponden a una sola instalación; no aíslan clientes.
+La API permite leer recursos, crear/configurar agentes y prompts, asignarlos a
+canales con IA desactivada y probarlos. Las herramientas nativas están disponibles
+automáticamente. Una clave no permite enviar mensajes, borrar registros, activar
+canales ni editar herramientas. En cloud cada clave pertenece a un espacio aislado.
 Usar HTTPS en producción. HTTP se reserva al desarrollo en loopback.
 
 ## Crear una clave
@@ -12,11 +13,15 @@ En **Configuración → Claves API**, indica nombre, vencimiento (1–365 días)
 | Permiso | Operaciones |
 |---|---|
 | `resources:read` | GET de recursos y versiones de prompts. |
-| `prompts:write` | PATCH de un prompt y POST para restaurar una versión. |
+| `prompts:write` | POST para crear prompts, PATCH para editarlos y POST para restaurar versiones. |
+| `agents:write` | POST de agentes y PATCH de configuración, `prompt_ids` y `tool_ids`. |
+| `channels:assign` | PUT `/api/channels/ID_CANAL/agent`: asignar agente con la IA del canal desactivada. |
 | `agents:test` | POST de una prueba aislada del agente. |
 
 Los permisos son independientes. Para leer y corregir un prompt selecciona los dos
-primeros. Guarda el secreto cuando se muestra: después solo aparece su prefijo. La
+primeros. Para preparar agentes selecciona también `agents:write` y
+`channels:assign`. Las claves existentes no reciben permisos nuevos: crea otra con
+los permisos necesarios y revoca la anterior cuando dejes de usarla. Guarda el secreto cuando se muestra: después solo aparece su prefijo. La
 base conserva su hash. Revocar impide nuevas solicitudes inmediatamente; para rotar,
 crea otra clave y revoca la anterior. Vencimiento y último uso aparecen en la lista.
 No pegues claves en prompts ni las publiques en clientes web. Máximo 100 claves
@@ -24,7 +29,13 @@ conservadas en esta entrega; revocar no borra el registro.
 
 Autenticación: `Authorization: Bearer <CLAVE>`, sin cookie. Mezclar ambos mecanismos
 se rechaza; un Bearer inválido no recurre a una sesión válida. Crear/listar/revocar
-claves requiere sesión de administrador y protección de origen en las mutaciones.
+claves requiere sesión del usuario del espacio (administrador en self-hosted) y
+protección de origen en las mutaciones.
+
+En cloud añade `X-OpenFunnel-Workspace: ID_ESPACIO` en **todas** las solicitudes con
+Bearer. El ID aparece en la página de Claves API. En self-hosted se omite. La clave
+se valida dentro de ese espacio; cambiar el ID no concede acceso a otra cuenta.
+Los ejemplos `curl` siguientes omiten ese header por brevedad; añádelo en cloud.
 
 ## Leer recursos
 
@@ -45,6 +56,80 @@ devuelve un registro. Los listados devuelven `{items,total,page,pageSize}`: 25 p
 página de forma predeterminada, máximo 100. `q` busca según el recurso; filtros
 permitidos en `shared/resources.js`. Las conversaciones admiten `channel_id` y los
 mensajes `conversation_id`. Filtros desconocidos se rechazan.
+
+## Crear y conectar un agente
+
+Este ejemplo para Node.js 24 usa únicamente una API key. Define `OPENFUNNEL_URL`,
+`OPENFUNNEL_API_KEY`, `OPENFUNNEL_CHANNEL_ID` (un canal Zernio ya conectado) y, en
+cloud, `OPENFUNNEL_WORKSPACE_ID`. No utiliza usuario, contraseña ni cookie de login.
+La clave necesita `resources:read`, `prompts:write`, `agents:write` y `channels:assign`.
+
+```js
+const base = process.env.OPENFUNNEL_URL.replace(/\/$/, '');
+const headers = {
+  Authorization: `Bearer ${process.env.OPENFUNNEL_API_KEY}`,
+  'Content-Type': 'application/json',
+  ...(process.env.OPENFUNNEL_WORKSPACE_ID
+    ? { 'X-OpenFunnel-Workspace': process.env.OPENFUNNEL_WORKSPACE_ID } : {}),
+};
+async function request(method, path, body) {
+  const response = await fetch(`${base}/api${path}`, {
+    method, headers,
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(`${response.status}: ${data.error}`);
+  return data;
+}
+const prompt = await request('POST', '/prompts', {
+  name: 'Atención al cliente',
+  content: 'Responde brevemente. Si solicitan una persona, usa handoff_to_human con el motivo.',
+});
+const handoff = await request('GET', '/tools/builtin_handoff_to_human');
+const agent = await request('POST', '/ai_agents', {
+  name: 'Asistente', active: true,
+  prompt_ids: [prompt.id], tool_ids: [handoff.id],
+});
+await request('PUT', `/channels/${process.env.OPENFUNNEL_CHANNEL_ID}/agent`, {
+  agent_id: agent.id,
+});
+console.log({ agentId: agent.id, promptId: prompt.id, automationEnabled: false });
+```
+
+POST devuelve 201 con el recurso creado. Para un agente existente utiliza PATCH
+`/api/ai_agents/ID_AGENTE` con `prompt_ids` y/o `tool_ids`: cada array reemplaza esa
+selección; las propiedades omitidas se conservan. Se rechazan referencias inexistentes
+o de otras cuentas. POST no es idempotente: conserva los IDs devueltos y consulta antes
+de repetir una creación tras una respuesta incierta.
+
+PUT `/api/channels/ID_CANAL/agent` acepta exclusivamente `{agent_id}` y devuelve
+`{ok:true}`. Guarda `default_ai_agent_id`, deja `automation_enabled:0` e invalida
+trabajo pendiente. También desactiva un canal que ya tenía IA encendida. No llama al
+proveedor, conecta una cuenta Zernio ni cambia el agente específico de conversaciones
+que ya tenían uno asignado. Revisa la configuración y activa la IA desde la UI cuando
+corresponda; `active:true` en el agente no activa el canal. No se admite `enabled` en
+este endpoint. Crear/configurar recursos no consume créditos; probar o ejecutar IA
+conserva los requisitos de proveedor, plan y saldo de la instancia.
+
+## Herramientas nativas
+
+No es necesario crear herramientas. Cada espacio dispone de:
+
+| ID estable | Función | Comportamiento |
+|---|---|---|
+| `builtin_get_contact` | `get_contact` | Lee el contacto de la conversación actual. |
+| `builtin_get_ticket` | `get_ticket` | Lee el ticket de la conversación actual. |
+| `builtin_handoff_to_human` | `handoff_to_human` | Recibe `reason`, pausa la IA de esa conversación y guarda el motivo. |
+
+Se seleccionan en **Agentes IA → agente → Herramientas** o mediante `tool_ids`.
+No se añaden automáticamente a los agentes. Las definiciones y su ejecución pertenecen
+al backend: `/api/tools` solo permite GET, incluso con sesión. Los registros heredados
+y sus asociaciones se conservan; las nuevas opciones de la UI son las nativas.
+
+La derivación cambia la conversación a modo manual y cancela ejecuciones y envíos IA
+pendientes. No envía un mensaje, no pausa otros chats y no reanuda automáticamente al
+recibir otro mensaje: una persona debe retomar la conversación o reactivar su IA.
+El modo **Probar** simula la derivación sin modificar conversaciones.
 
 ## Editar y restaurar prompts
 
@@ -106,7 +191,9 @@ La extracción ocurre una vez por carga. El texto disponible se incluye en cada
 llamada al modelo como referencia separada de instrucciones; consume tokens de cada
 solicitud. Los valores legacy `business_context` se migran a `contexto-inicial.txt`.
 `business_context`, `provider` y `model` ya no son campos editables de agentes.
-El modelo se configura exclusivamente mediante `LLM_MODEL` del servidor.
+El proveedor y modelo se configuran para el espacio desde **Agentes IA → Configurar
+proveedor**, o mediante `LLM_BASE_URL`, `LLM_API_KEY` y `LLM_MODEL` del servidor.
+Las API keys de OpenFunnel no pueden leer ni modificar esas credenciales.
 
 ## Probar un agente
 

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
 import { openDatabase } from '../backend/db.js';
+import { save } from '../backend/resources.js';
 import { createApp } from '../backend/server.js';
 
 const password = 'synthetic-password-123';
@@ -13,8 +14,9 @@ const origin = 'http://localhost:5173';
 async function fixture(t) {
   const dir = await mkdtemp(join(tmpdir(),'openfunnel-cloud-'));
   const emails = [];
+  const providerCalls = [];
   const env = {APP_MODE:'cloud',CLOUD_DATA_DIR:dir, APP_ORIGIN:origin, CLOUD_OWNER_EMAIL:'owner@example.com', BETTER_AUTH_SECRET:'a'.repeat(48), PROVIDER_ENCRYPTION_KEY:'ab'.repeat(32), RESEND_API_KEY:'test-only', RESEND_FROM:'test@example.com', PUBLIC_BASE_URL:'https://app.example.com'};
-  const app = await createApp({env,integrationOptions:{mailFetch:async(url,options)=>{emails.push(JSON.parse(options.body));return Response.json({id:'test'});}}});
+  const app = await createApp({env,integrationOptions:{fetch:async (...args)=>{providerCalls.push(args);throw new Error('Unexpected provider request');},llmClient:{chat:{completions:{create:async (...args)=>{providerCalls.push(args);throw new Error('Unexpected LLM request');}}}},mailFetch:async(url,options)=>{emails.push(JSON.parse(options.body));return Response.json({id:'test'});}}});
   app.server.listen(0,'127.0.0.1'); await once(app.server,'listening');
   t.after(async()=>{await app.integrations.stop(); await new Promise(resolve=>app.server.close(resolve)); app.db.close(); await rm(dir,{recursive:true,force:true});});
   const base = `http://127.0.0.1:${app.server.address().port}`;
@@ -31,8 +33,78 @@ async function fixture(t) {
     assert.equal(login.status,200,JSON.stringify(login.body));
     return login;
   }
-  return {app,request,signup,token,emails,env,dir,base};
+  return {app,request,signup,token,emails,env,dir,base,providerCalls};
 }
+
+test('API keys provision agents and assign paused channels without login or external effects across tenants', async t => {
+  const { request, signup, dir, providerCalls } = await fixture(t);
+  const a = await signup('a@example.com'), b = await signup('b@example.com');
+  const scopes = ['resources:read', 'prompts:write', 'agents:write', 'channels:assign'];
+  const makeKey = async (user, granted = scopes) => {
+    const result = await request('/api/api-keys', 'POST', { name: 'Provisioning', scopes: granted, expires_in_days: 1 }, user.cookie);
+    assert.equal(result.status, 201);
+    return { key: result.body, headers: { Authorization: `Bearer ${result.body.secret}`, 'X-OpenFunnel-Workspace': user.body.user.workspaceId } };
+  };
+  const ka = await makeKey(a), kb = await makeKey(b), read = await makeKey(a, ['resources:read']);
+  const api = (path, method = 'GET', body, headers = ka.headers) => request(`/api${path}`, method, body, null, headers);
+  const tools = await api('/tools');
+  assert.equal(tools.status, 200);
+  assert.deepEqual(tools.body.items.map(row => row.kind).sort(), ['get_contact', 'get_ticket', 'handoff_to_human']);
+  const tool = tools.body.items.find(row => row.kind === 'handoff_to_human');
+  const prompt = await api('/prompts', 'POST', { name: 'Instructions', content: 'Deriva a una persona si te lo piden.' });
+  assert.equal(prompt.status, 201, JSON.stringify(prompt.body));
+  assert.equal(prompt.body.version, 1);
+  const agent = await api('/ai_agents', 'POST', { name: 'Assistant' });
+  assert.equal(agent.status, 201);
+  const updated = await api(`/ai_agents/${agent.body.id}`, 'PATCH', { prompt_ids: [prompt.body.id], tool_ids: [tool.id] });
+  assert.equal(updated.status, 200);
+  assert.deepEqual(updated.body.prompt_ids, [prompt.body.id]);
+  assert.deepEqual(updated.body.tool_ids, [tool.id]);
+  assert.equal((await api('/ai_agents', 'POST', { name: 'Combined', prompt_ids: [prompt.body.id], tool_ids: [tool.id] })).status, 201);
+  const history = await api(`/prompts/${prompt.body.id}/versions`);
+  assert.equal(history.body.items[0].actor, `api_key:${ka.key.id}`);
+
+  const db = openDatabase(join(dir, 'workspaces', `${a.body.user.workspaceId}.sqlite`));
+  t.after(() => db.close());
+  const channel = save(db, 'channels', { name: 'Synthetic connected channel', kind: 'instagram' });
+  const contact = save(db, 'contacts', { name: 'Synthetic contact' });
+  const conversation = save(db, 'conversations', { title: 'Synthetic thread', contact_id: contact.id, channel_id: channel.id });
+  db.prepare("UPDATE channels SET provider='zernio',external_account_id='synthetic',automation_enabled=1 WHERE id=?").run(channel.id);
+  const message = save(db, 'messages', { conversation_id: conversation.id, body: 'Synthetic', direction: 'incoming', occurred_at: new Date().toISOString() });
+  db.prepare("INSERT INTO agent_runs (id,conversation_id,trigger_message_id,revision,status,available_at,created_at,updated_at) VALUES ('pending',?,?,0,'pending',?,?,?)").run(conversation.id, message.id, ...Array(3).fill(new Date().toISOString()));
+  for (const body of [{ agent_id: agent.body.id, enabled: true }, {}, null, [], { agent_id: 12 }])
+    assert.equal((await api(`/channels/${channel.id}/agent`, 'PUT', body)).status, 400);
+  assert.equal(db.prepare('SELECT automation_enabled FROM channels WHERE id=?').get(channel.id).automation_enabled, 1);
+  assert.equal((await api(`/channels/${channel.id}/agent`, 'PUT', { agent_id: agent.body.id })).status, 200);
+  const assigned = await api(`/channels/${channel.id}`);
+  assert.equal(assigned.body.default_ai_agent_id, agent.body.id);
+  assert.equal(assigned.body.automation_enabled, 0);
+  assert.equal(db.prepare("SELECT status FROM agent_runs WHERE id='pending'").get().status, 'cancelled');
+
+  for (const [path, method, body] of [
+    ['/prompts', 'POST', { name: 'Denied', content: 'No' }],
+    ['/ai_agents', 'POST', { name: 'Denied' }],
+    [`/ai_agents/${agent.body.id}`, 'PATCH', { name: 'Denied' }],
+    [`/channels/${channel.id}/agent`, 'PUT', { agent_id: agent.body.id }],
+  ]) assert.equal((await api(path, method, body, read.headers)).status, 403, path);
+  for (const [path, method, body] of [
+    ['/api-keys', 'POST', {}], ['/connections/llm', 'PUT', {}],
+    [`/channels/${channel.id}/automation`, 'POST', { enabled: true, agent_id: agent.body.id }],
+    [`/channels/${channel.id}`, 'PATCH', { default_ai_agent_id: agent.body.id }],
+    [`/conversations/${conversation.id}/send`, 'POST', { body: 'No' }],
+    [`/ai_agents/${agent.body.id}`, 'DELETE'], ['/tools', 'POST', {}],
+    [`/tools/${tool.id}`, 'PATCH', { active: false }], [`/tools/${tool.id}`, 'DELETE'],
+  ]) assert.equal((await api(path, method, body)).status, 403, path);
+  const other = await api('/ai_agents', 'POST', { name: 'Other' }, kb.headers);
+  assert.equal((await api('/ai_agents', 'POST', { name: 'Cross prompt', prompt_ids: [prompt.body.id] }, kb.headers)).status, 400);
+  assert.equal((await api(`/ai_agents/${other.body.id}`, 'PATCH', { name: 'Cross agent' })).status, 404);
+  assert.equal((await api(`/channels/${channel.id}/agent`, 'PUT', { agent_id: other.body.id })).status, 404);
+  assert.equal((await api(`/channels/${channel.id}/agent`, 'PUT', { agent_id: other.body.id }, kb.headers)).status, 404);
+  assert.equal((await api('/tools', 'GET', undefined, { ...ka.headers, 'X-OpenFunnel-Workspace': b.body.user.workspaceId })).status, 401);
+  assert.equal((await request(`/api/api-keys/${ka.key.id}/revoke`, 'POST', {}, a.cookie)).status, 200);
+  assert.equal((await api('/ai_agents', 'POST', { name: 'Revoked' })).status, 401);
+  assert.deepEqual(providerCalls, []);
+});
 
 test('Cloud verified registration, instance owner, tenant isolation, keys and suspension',async t=>{
   const {app,request,signup,token}=await fixture(t);
@@ -132,7 +204,7 @@ test('Cloud resumes existing spaces and their workers after restart without a br
   const tenant=openDatabase(join(dir,'workspaces',`${a.body.user.workspaceId}.sqlite`));
   tenant.prepare("INSERT INTO webhook_events(id,event,payload,status,received_at) VALUES (?,?,?,'pending',?)").run('recovery-event','account.connected',JSON.stringify({id:'recovery-event',event:'account.connected'}),new Date().toISOString());
   tenant.close();
-  const restarted=await createApp({env,integrationOptions:{mailFetch:async()=>Response.json({id:'test'})}});
+  const restarted=await createApp({env,integrationOptions:{fetch:async (...args)=>{providerCalls.push(args);throw new Error('Unexpected provider request');},llmClient:{chat:{completions:{create:async (...args)=>{providerCalls.push(args);throw new Error('Unexpected LLM request');}}}},mailFetch:async()=>Response.json({id:'test'})}});
   t.after(async()=>{await restarted.integrations.stop();restarted.db.close();});
   restarted.integrations.start();
   await new Promise(resolve=>setTimeout(resolve,1200));

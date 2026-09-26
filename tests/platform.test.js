@@ -455,14 +455,10 @@ test('Agentes, prompts y tools: asociaciones ordenadas y referencias', async (t)
         input_schema: '[]',
       })
     ).status,
-    400,
+    403,
   );
-  const tool = await a.create('tools', {
-    name: 'Lookup',
-    kind: 'http',
-    description: 'Definition only',
-    input_schema: '{"type":"object"}',
-  });
+  const tool = (await a.request('GET', '/api/tools/builtin_handoff_to_human')).data;
+  assert.equal((await a.request('PATCH', `/api/tools/${tool.id}`, { active: false })).status, 403);
   const agent = await a.create('ai_agents', {
     name: 'Assistant',
     prompt_ids: [p2.id, p1.id],
@@ -484,7 +480,7 @@ test('Agentes, prompts y tools: asociaciones ordenadas y referencias', async (t)
   );
   assert.equal(
     (await a.request('DELETE', `/api/tools/${tool.id}`)).status,
-    409,
+    403,
   );
   assert.equal(
     (
@@ -522,7 +518,7 @@ test('Agentes, prompts y tools: asociaciones ordenadas y referencias', async (t)
   );
   assert.equal(
     (await a.request('DELETE', `/api/tools/${tool.id}`)).status,
-    200,
+    403,
   );
 });
 

@@ -966,3 +966,24 @@ Cada bloque incluye su interfaz, pruebas y documentación. El registro público
 solo se habilita después de verificar el aislamiento y ensayar la migración;
 el bloque de autenticación puede probarse antes en un entorno sintético.
 El flujo de pagos se implementa en el cambio OpenSpec `polar-admin-portal`.
+
+### 14.6. Preparación de agentes mediante API keys y herramientas nativas
+
+- Cada espacio dispone automáticamente de `get_contact`, `get_ticket` y
+  `handoff_to_human`. Son funciones de la app, de solo lectura en UI/API; el usuario
+  selecciona explícitamente cuáles puede ejecutar cada agente. Se conservan
+  definiciones y asociaciones heredadas.
+- `prompts:write` permite crear, editar y restaurar prompts. `agents:write` permite
+  crear/editar agentes y sus asociaciones a prompts y herramientas.
+- `channels:assign` permite PUT `/api/channels/:id/agent` con `agent_id`: asigna un
+  agente del mismo espacio a un canal Zernio existente y desactiva su automatización,
+  invalidando trabajo pendiente. No activa IA, conecta cuentas externas ni envía mensajes.
+- El recorrido usa Bearer, sin token de login. En cloud exige además
+  `X-OpenFunnel-Workspace`; referencias y permisos quedan aislados por espacio.
+  Crear/revocar API keys y configurar credenciales de proveedores conserva acceso por sesión.
+- Las claves antiguas no reciben scopes nuevos. La preparación no consume créditos;
+  las llamadas LLM/tools mantienen sus controles de plan y saldo.
+- `handoff_to_human` guarda un motivo y pausa solo esa conversación; cancela trabajo
+  IA pendiente y requiere reanudación humana. Las pruebas del agente simulan esta acción.
+
+Contrato y ejemplo completo: [API para agentes externos](api/AGENTES.md).
