@@ -161,7 +161,7 @@ export const resources = {
     group: 'Configuración',
     navigationParent: 'ai_agents',
     readOnly: true,
-    note: 'Herramientas nativas de OpenFunnel. Selecciona las que puede usar cada agente desde su pestaña Herramientas.',
+    note: 'Herramientas nativas de OpenFunnel. Selecciona las que puede usar cada agente en la sección Herramientas del agente.',
     title: 'name',
     search: ['name', 'description'],
     filters: ['kind', 'active'],

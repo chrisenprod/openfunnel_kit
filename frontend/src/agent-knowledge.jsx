@@ -5,7 +5,7 @@ const size = (bytes) => bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : 
 const accept = '.txt,.md,.doc,.docx,.pdf';
 const labels = { ready: 'Disponible', processing: 'Procesando…', error: 'No disponible' };
 
-export function AgentKnowledge({ id, confirm, setDirty }) {
+export function AgentKnowledge({ id, confirm, setDirty, onChanged }) {
   const [version, setVersion] = useState(0);
   const state = useData(`/ai_agents/${id}/documents`, version, { pollMs: 3000, preserve: true });
   const [busy, setBusy] = useState(false);
@@ -35,7 +35,7 @@ export function AgentKnowledge({ id, confirm, setDirty }) {
         });
         if (!alive.current) break;
         setJobs((items) => items.filter((item) => item.key !== job.key));
-        setVersion((v) => v + 1);
+        setVersion((v) => v + 1); onChanged?.();
         if (opened === row.id) { setPreview(row); }
       } catch (e) { if (alive.current) update({ state: 'No se pudo cargar', error: e.message }); }
     }
@@ -53,13 +53,12 @@ export function AgentKnowledge({ id, confirm, setDirty }) {
     try {
       await api(`/ai_agents/${id}/documents/${row.id}`, { method: 'DELETE', headers: { 'If-Match': String(row.revision) } });
       if (opened === row.id) setOpened(null);
-      setVersion((v) => v + 1);
-    } catch (e) { setError(e.message); setVersion((v) => v + 1); }
+      setVersion((v) => v + 1); onChanged?.();
+    } catch (e) { setError(e.message); setVersion((v) => v + 1); onChanged?.(); }
     finally { setBusy(false); }
   }
   return <section className="related-section knowledge-panel" aria-label="Contexto del agente">
     <div className={`document-dropzone ${busy ? 'is-busy' : ''}`} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); upload(e.dataTransfer.files); }}>
-      <p>Información del negocio para tu agente</p>
       <button className="button secondary" disabled={busy} onClick={() => input.current.click()}>Subir archivos</button>
       <input ref={input} type="file" accept={accept} multiple hidden onChange={(e) => { upload(e.target.files); e.target.value = ''; }} />
       <p className="muted">TXT, MD, DOC, DOCX y PDF con texto · Hasta 5 MiB por archivo</p>

@@ -1,4 +1,5 @@
 const paths = {
+  settings: 'M4 7h16M4 17h16M9 4v6M15 14v6',
   billing: 'M3 5h18v14H3V5Z M3 9h18M6 15h4',
   cloud_accounts: 'M12 3l8 4v6c0 4-8 8-8 8s-8-4-8-8V7l8-4Z M8 12l3 3 5-6',
   api_keys: 'M14 3a6 6 0 1 1-3.9 10.6L4 20H1v-3l6.4-6.1A6 6 0 0 1 14 3Z M16 7h.01',

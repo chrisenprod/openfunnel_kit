@@ -134,7 +134,7 @@ export function PromptHistory({ id, version, refresh, confirm }) {
   </section>;
 }
 
-export function AgentTestPanel({ id, setDirty }) {
+export function AgentTestPanel({ id, setDirty, configurationVersion = 0 }) {
   const [message, setMessage] = useState('');
   const [candidate, setCandidate] = useState('');
   const [custom, setCustom] = useState(false);
@@ -142,6 +142,8 @@ export function AgentTestPanel({ id, setDirty }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [testedVersion, setTestedVersion] = useState(configurationVersion);
+  const changed = history.length > 0 && testedVersion !== configurationVersion;
   const controller = useRef();
   const transcript = useRef();
   useEffect(() => () => { controller.current?.abort(); setDirty(false); }, [setDirty]);
@@ -156,15 +158,16 @@ export function AgentTestPanel({ id, setDirty }) {
         message, history, ...(result ? { context_hash: result.context_hash } : {}), ...(custom ? { prompt: candidate } : {}),
       }, signal: controller.current.signal });
       setHistory((items) => [...items, { role: 'user', content: message }, { role: 'assistant', content: data.response }]);
-      setResult(data); setMessage(''); setDirty(true);
+      setResult(data); setTestedVersion(configurationVersion); setMessage(''); setDirty(true);
     } catch (e) { if (e.name !== 'AbortError') setError(e.message); } finally { setBusy(false); }
   }
   const full = history.length > 20 || history.reduce((n, item) => n + item.content.length, 0) > 18000;
   return <section className="related-section agent-test"><div className="section-heading"><h2>Probar agente</h2>
-    <button className="button secondary" disabled={busy || (!history.length && !error)} onClick={() => { setHistory([]); setResult(null); setError(''); setMessage(''); setDirty(custom); }}>Reiniciar</button>
+    <button className="button secondary" disabled={busy || (!history.length && !error)} onClick={() => { setTestedVersion(configurationVersion); setHistory([]); setResult(null); setError(''); setMessage(''); setDirty(custom); }}>Reiniciar</button>
     </div>
     <p className="muted">Chat temporal · Consume tokens y, si hay facturación activa, créditos · Sin envíos reales.</p>
     <Notice error>{error}</Notice>
+    {changed && <p className="notice">La configuración cambió. Reinicia la prueba para usarla.</p>}
     <form onSubmit={run} aria-busy={busy}><fieldset disabled={busy}><legend className="sr-only">Prueba del agente</legend>
       <details className="candidate-instructions"><summary>Opciones de prueba</summary><p className="muted">Las herramientas se simulan. El historial se pierde al salir del agente.</p>
         <label className="scope-options"><input type="checkbox" disabled={!!history.length} checked={custom} onChange={(e) => { setCustom(e.target.checked); setDirty(true); }} />Probar otras instrucciones sin guardarlas</label>
@@ -178,7 +181,7 @@ export function AgentTestPanel({ id, setDirty }) {
       </div>
       {full && <p className="notice">Esta prueba alcanzó el límite de historial. Reinicia para continuar.</p>}
       <div className="field"><label htmlFor="test-message">Mensaje de prueba</label><textarea id="test-message" value={message} required maxLength={4000} rows={3} onChange={(e) => { setMessage(e.target.value); setDirty(true); }} /></div>
-      <button className="button primary" disabled={full}>{busy ? 'Probando…' : 'Enviar prueba'}</button>
+      <button className="button primary" disabled={full || changed}>{busy ? 'Probando…' : 'Enviar prueba'}</button>
     </fieldset></form>
     {result && <details className="test-result"><summary>Detalles de la última respuesta</summary>
       <p className="muted">{(result.duration_ms / 1000).toFixed(1)} s · {result.usage ? `${result.usage.total_tokens} tokens` : 'Consumo no informado'} · {result.candidate ? 'Instrucciones candidatas' : 'Prompts guardados'}</p>

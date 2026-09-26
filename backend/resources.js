@@ -234,7 +234,7 @@ export function detail(db, table, id) {
 }
 export function list(db, table, params) {
   const def = definition(table);
-  const special = table === 'ai_agents' ? ['prompt_id', 'tool_id'] : [];
+  const special = table === 'ai_agents' ? ['prompt_id', 'tool_id'] : table === 'conversations' ? ['attention'] : [];
   const allowed = ['q', 'page', 'pageSize', ...def.filters, ...special];
   for (const [key] of params)
     if (!allowed.includes(key) || params.getAll(key).length > 1)
@@ -267,7 +267,11 @@ export function list(db, table, params) {
       where.push(`${key}=?`);
       values.push(value);
     }
-  for (const key of special)
+  if (table === 'conversations' && params.has('attention')) {
+    if (params.get('attention') !== 'needed') throw new HttpError(400, 'Filtro de atención inválido.');
+    where.push("status='open' AND (automation_mode='manual' OR EXISTS (SELECT 1 FROM outbound_messages o WHERE o.conversation_id=conversations.id AND o.status IN ('failed','uncertain')))");
+  }
+  for (const key of special.filter(key => key !== 'attention'))
     if (params.has(key)) {
       const join = key === 'prompt_id' ? 'agent_prompts' : 'agent_tools';
       where.push(`id IN (SELECT ai_agent_id FROM ${join} WHERE ${key}=?)`);
@@ -404,4 +408,49 @@ export function publicError(error) {
       'Ya existe ese email, asociación o conversación vinculada. Revisa los valores.',
     );
   return new HttpError(500, 'No se pudo completar la operación.');
+}
+
+
+export function agentInstructions(db, id) {
+  const agent = detail(db, 'ai_agents', id);
+  const prompts = agent.prompt_ids.map(promptId => ({
+    ...detail(db, 'prompts', promptId),
+    agents: db.prepare('SELECT a.id,a.name FROM ai_agents a JOIN agent_prompts p ON a.id=p.ai_agent_id WHERE p.prompt_id=? ORDER BY a.name,a.id').all(promptId),
+  }));
+  return { agent, prompts };
+}
+
+export function saveAgentInstructions(db, id, body, actor = 'admin') {
+  if (!body || typeof body !== 'object' || Array.isArray(body) ||
+      Object.keys(body).some(key => !['expected_ids', 'prompts'].includes(key)) ||
+      !Array.isArray(body.expected_ids) || !Array.isArray(body.prompts))
+    throw new HttpError(400, 'Instrucciones inválidas.');
+  return transaction(db, () => {
+    const agent = detail(db, 'ai_agents', id);
+    if (JSON.stringify(body.expected_ids) !== JSON.stringify(agent.prompt_ids))
+      throw new HttpError(409, 'Las instrucciones asociadas cambiaron. Recarga antes de guardar.');
+    if (body.prompts.length !== (agent.prompt_ids.length || 1))
+      throw new HttpError(400, 'Conserva las instrucciones asociadas y su orden.');
+    const rows = body.prompts.map((input, index) => {
+      if (!input || typeof input !== 'object' || Array.isArray(input) ||
+          Object.keys(input).some(key => !['id', 'expected_version', 'content'].includes(key)))
+        throw new HttpError(400, 'Instrucciones inválidas.');
+      const promptId = agent.prompt_ids[index];
+      if ((input.id || null) !== (promptId || null)) throw new HttpError(409, 'Las instrucciones cambiaron.');
+      const old = promptId ? detail(db, 'prompts', promptId) : null;
+      if (old && input.expected_version !== old.version)
+        throw new HttpError(409, 'Las instrucciones cambiaron. Tu borrador se conserva; recarga para ver la versión actual.');
+      const data = validate(db, 'prompts', old ? { content: input.content } : {
+        name: agent.name, content: input.content, active: true,
+      }, old);
+      return { old, data };
+    });
+    for (const { old, data } of rows) {
+      if (old && old.content === data.content) continue;
+      const promptId = writeRow(db, 'prompts', { ...data, version: old ? old.version + 1 : 1 }, old);
+      db.prepare('INSERT INTO prompt_versions SELECT id,version,name,description,content,active,?,updated_at FROM prompts WHERE id=?').run(actor, promptId);
+      if (!old) saveAssociations(db, id, 'prompt_ids', [promptId], []);
+    }
+    return agentInstructions(db, id);
+  });
 }

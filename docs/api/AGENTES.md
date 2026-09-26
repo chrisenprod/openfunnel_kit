@@ -244,3 +244,16 @@ con historial vacío. El cliente conserva el historial: el servidor no lo persis
 Las claves y versiones persisten en SQLite mediante la migraciones aditivas 005/006. El
 historial dura mientras exista el prompt; eliminar un prompt sin referencias elimina
 también sus versiones. El sistema mantiene las restricciones de borrado existentes.
+
+
+### Instrucciones directamente desde el agente
+
+`GET /api/ai_agents/:id/instructions` requiere `resources:read` y devuelve el agente,
+los prompts en orden, sus versiones y los agentes que los comparten.
+`PUT` en la misma ruta requiere **ambos** scopes `agents:write` y `prompts:write`.
+El cuerpo contiene `expected_ids` (IDs asociados leídos, en orden) y `prompts`
+con `{ id, expected_version, content }` por prompt. El conjunto se guarda atómicamente;
+409 conserva el servidor sin cambios cuando una versión o asociación cambió.
+Si el agente todavía no tiene prompts, usar `expected_ids: []` y
+`prompts: [{ content: "Instrucciones iniciales" }]`: crea y asocia uno en la misma
+transacción. No modifica orden, activación ni herramientas de prompts existentes.

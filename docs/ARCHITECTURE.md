@@ -339,3 +339,17 @@ POST de conexión reintenta con sesión, Origin y expected_version; un bloqueo p
 proveedor evita escrituras concurrentes. Se conservan checks de rotación y suspensión.
 La invalidación de conexiones solo borra la preparación del proveedor cambiado;
 la suspensión invalida ambas. No hay efectos externos en GET o reinicio.
+
+
+### Edición directa y primer uso
+
+GET/PUT `/api/ai_agents/:id/instructions` conserva asociaciones y orden, devuelve
+agentes afectados y guarda contenidos con versiones optimistas en una sola transacción.
+La primera edición crea y asocia un prompt; un conflicto revierte el conjunto. Sesión
+exige Origin; Bearer requiere resources:read para lectura y agents:write más
+prompts:write para guardado. No cambia herramientas ni estado del canal.
+
+GET `/api/setup` es lectura local con sesión del espacio; deriva conexión IA/canal,
+agente preparado y prueba guardada exitosa. El logro (sin mensajes) se conserva en
+integration_settings con prefijo onboarding_test. `attention=needed` filtra conversaciones
+abiertas manuales o con outbound fallido/incierto, con paginación en servidor.

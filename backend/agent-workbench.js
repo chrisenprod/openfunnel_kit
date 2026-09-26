@@ -74,6 +74,9 @@ export function createAgentTester(db, env, client) {
         if (!calls?.length) {
           if (typeof result.message.content !== 'string' || !result.message.content.trim())
             throw new HttpError(502, 'El modelo no devolvió texto.');
+          if (body.prompt === undefined)
+            db.prepare('INSERT INTO integration_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')
+              .run(`onboarding_test:${id}`, new Date().toISOString());
           return { response: result.message.content, tools, usage, duration_ms: Date.now() - started,
             simulated: true, context_hash: contextHash, documents: documents.map(({ id, filename, revision }) => ({ id, filename, revision })), prompt_versions: body.prompt === undefined ? prompts.map(({ id, version }) => ({ id, version })) : [],
             candidate: body.prompt !== undefined };

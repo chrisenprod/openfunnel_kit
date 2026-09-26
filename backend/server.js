@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { fromNodeHeaders } from 'better-auth/node';
 import { openDatabase } from './db.js';
 import { createAuth, getAdminSession } from './auth.js';
-import { detail, list, save, remove, HttpError, publicError } from './resources.js';
+import { detail, list, save, remove, HttpError, publicError, agentInstructions, saveAgentInstructions } from './resources.js';
 import { resources } from '../shared/resources.js';
 import { createIntegrations } from './integrations.js';
 import { createDocuments, readUpload } from './documents.js';
@@ -113,12 +113,14 @@ export async function createApp({ databasePath, env = process.env, integrationOp
       const documentRoute = path.match(/^\/api\/ai_agents\/([\w-]+)\/documents(?:\/([\w-]+)(\/download)?)?$/);
       const workbenchRoute = path.match(/^\/api\/(?:api-keys(?:\/([\w-]+)\/(revoke))?|prompts\/([\w-]+)\/(versions|restore)|ai_agents\/([\w-]+)\/(test))$/);
       const authPath = ['/api/login', '/api/logout', '/api/session'].includes(path);
+      const instructionsRoute = path.match(/^\/api\/ai_agents\/([\w-]+)\/instructions$/);
+      const setupRoute = path === '/api/setup' && req.method === 'GET';
       const providerRoute = path.match(/^\/api\/connections\/(zernio|llm)$/);
       const match = path.match(/^\/api\/([a-z_]+)(?:\/([\w-]+))?$/);
       const known = match && Object.hasOwn(resources, match[1]);
       const validMethod =
         known && (match[2] ? ['GET', 'PATCH', 'DELETE'] : ['GET', 'POST']).includes(req.method);
-      if (!authPath && !validMethod && !integrationRoute && !workbenchRoute && !documentRoute && !providerRoute)
+      if (!authPath && !validMethod && !integrationRoute && !workbenchRoute && !documentRoute && !providerRoute && !instructionsRoute && !setupRoute)
         return send(res, 404, { error: 'Ruta no encontrada' });
       if (authPath && req.method !== (path === '/api/session' ? 'GET' : 'POST'))
         return send(res, 404, { error: 'Ruta no encontrada' });
@@ -136,6 +138,8 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         if (req.method === 'PUT' && integrationRoute?.[3] === 'agent') scope = 'channels:assign';
         if (req.method === 'POST' && workbenchRoute?.[4] === 'restore') scope = 'prompts:write';
         if (req.method === 'POST' && workbenchRoute?.[6] === 'test') scope = 'agents:test';
+        if (instructionsRoute && req.method === 'GET') scope = 'resources:read';
+        if (instructionsRoute && req.method === 'PUT' && apiKey.scopes.includes('agents:write')) scope = 'prompts:write';
         if (!scope || !apiKey.scopes.includes(scope)) throw new HttpError(403, 'La clave no permite esta operación.');
       }
       if (path === '/api/login') {
@@ -186,6 +190,24 @@ export async function createApp({ databasePath, env = process.env, integrationOp
         return send(res, 200, { ok: true });
       }
       const actor = apiKey ? `api_key:${apiKey.id}` : tenant ? `user:${session.user.id}` : 'admin';
+      if (instructionsRoute) {
+        if (req.method === 'GET') return send(res, 200, agentInstructions(db, instructionsRoute[1]));
+        if (req.method === 'PUT') return send(res, 200, saveAgentInstructions(db, instructionsRoute[1], await readBody(req), actor));
+        throw new HttpError(404, 'Ruta no encontrada.');
+      }
+      if (setupRoute) {
+        const llm = providerSetup.metadata('llm').setup;
+        const zernio = providerSetup.metadata('zernio').setup;
+        let channel = db.prepare("SELECT id FROM channels WHERE provider='zernio' AND connection_status='connected' AND active=1 ORDER BY created_at,id LIMIT 1").get();
+        const agent = db.prepare(`SELECT a.id FROM ai_agents a WHERE a.active=1
+          AND EXISTS (SELECT 1 FROM agent_prompts ap JOIN prompts p ON p.id=ap.prompt_id WHERE ap.ai_agent_id=a.id AND p.active=1)
+          AND EXISTS (SELECT 1 FROM channels c WHERE c.default_ai_agent_id=a.id AND c.provider='zernio' AND c.connection_status='connected' AND c.active=1)
+          ORDER BY EXISTS (SELECT 1 FROM integration_settings s WHERE s.key='onboarding_test:' || a.id) DESC,a.created_at,a.id LIMIT 1`).get();
+        if (agent) channel = db.prepare("SELECT id FROM channels WHERE default_ai_agent_id=? AND provider='zernio' AND connection_status='connected' AND active=1 ORDER BY created_at,id LIMIT 1").get(agent.id);
+        const tested = !!(agent && db.prepare('SELECT 1 FROM integration_settings WHERE key=?').get(`onboarding_test:${agent.id}`));
+        return send(res, 200, { llm: llm.status === 'ready', channel: !!channel && zernio.status === 'ready', agent: !!agent, tested,
+          agent_id: agent?.id || null, channel_id: channel?.id || null });
+      }
       if (providerRoute) {
         if (req.method === 'GET') return send(res, 200, providerSetup.metadata(providerRoute[1]));
         if (req.method === 'PUT') return send(res, 200, await providerSetup.save(providerRoute[1], await readBody(req)));

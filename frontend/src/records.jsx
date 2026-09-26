@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AgentKnowledge } from './agent-knowledge.jsx';
-import { AgentTestPanel, PromptHistory } from './agent-workbench.jsx';
+import { AgentEditor } from './agent-editor.jsx';
+import { PromptHistory } from './agent-workbench.jsx';
 import { Board } from './kanban.jsx';
 import { AppSelect } from './select.jsx';
 import { Icon, ChannelIcon } from './icons.jsx';
 import {
   ChannelConnections,
   ChannelAutomation,
-  AgentIntegration,
   ConversationIntegration,
   deliveryLabels,
 } from './integrations.jsx';
@@ -117,7 +116,7 @@ export function RecordForm({
           <div className="fields-grid">
             {def.fields
               .filter(
-                (f) => !f.readOnly && !(resource === 'messages' && f.key === 'conversation_id'),
+                (f) => !f.readOnly && !(resource === 'messages' && f.key === 'conversation_id') && !(resource === 'ai_agents' && !record && f.key !== 'name'),
               )
               .map((field) => (
                 <Field
@@ -236,7 +235,7 @@ export function RecordForm({
             </button>
           </section>
         )}
-        {resource === 'ai_agents' && (
+        {resource === 'ai_agents' && record && (
           <>
             {(!agentSection || agentSection === 'instructions') && (
               <Associations
@@ -511,6 +510,10 @@ export function ConversationInbox({ id, query, version, navigate, open, children
             <Icon name="plus" />
           </button>
         </div>
+        <div className="attention-shortcuts" aria-label="Atención de conversaciones">
+          <button className="button quiet" aria-pressed={!params.has('attention')} onClick={() => change('attention', '')}>Todas</button>
+          <button className="button quiet" aria-pressed={params.get('attention') === 'needed'} onClick={() => change('attention', 'needed')}>Necesitan atención</button>
+        </div>
         <ConversationChannelFilter query={query} version={version} navigate={navigate} />
         <div className="inbox-search">
           <form
@@ -628,7 +631,6 @@ export function ConversationInbox({ id, query, version, navigate, open, children
 }
 
 export function ResourceList({ resource, query, version, navigate, open, onCreate, connection }) {
-  const [connectionConfigured, setConnectionConfigured] = useState(false);
   const def = resources[resource];
   const [localVersion, setLocalVersion] = useState(0);
   const params = new URLSearchParams(query);
@@ -661,13 +663,13 @@ export function ResourceList({ resource, query, version, navigate, open, onCreat
           {def.note && <p className="muted">{def.note}</p>}
         </div>
         {!def.readOnly && resource !== 'channels' && <button
-          className={`button ${resource === 'ai_agents' && !connectionConfigured ? 'secondary' : 'primary'}`}
+          className="button primary"
           onClick={onCreate}
         >
           <Icon name="plus" /> Crear {def.singular}
         </button>}
       </div>
-      {connection?.(setConnectionConfigured)}
+      {connection?.()}
       {resource === 'channels' && (
         <>
           <Notice error>
@@ -1404,200 +1406,10 @@ function DetailActions({ edit, erase, deleting, compact = false }) {
   );
 }
 
-function AgentWorkspace({
-  record,
-  version,
-  refresh,
-  open,
-  confirm,
-  setDirty,
-  erase,
-  deleting,
-  error,
-}) {
-  const [tab, setTab] = useState('instructions');
-  const [editing, setEditing] = useState(null);
-  const [notice, setNotice] = useState('');
-  const dirty = useRef({ configuration: false, test: false });
-  const configDirty = useCallback(
-    (value) => {
-      dirty.current.configuration = value;
-      setDirty(value || dirty.current.test);
-    },
-    [setDirty],
-  );
-  const testDirty = useCallback(
-    (value) => {
-      dirty.current.test = value;
-      setDirty(value || dirty.current.configuration);
-    },
-    [setDirty],
-  );
-  async function leaveConfiguration() {
-    if (
-      dirty.current.configuration &&
-      !(await confirm(
-        'Descartar cambios',
-        'Hay cambios pendientes en la configuración. La conversación de prueba se conservará.',
-        'Descartar',
-      ))
-    )
-      return false;
-    configDirty(false);
-    return true;
-  }
-  async function selectTab(key) {
-    if ((key === tab && !editing) || !(await leaveConfiguration())) return;
-    setEditing(false);
-    setTab(key);
-    setNotice('');
-  }
-  return (
-    <>
-      <div className="page-heading agent-heading">
-        <div>
-          <h1 tabIndex="-1">{record.name}</h1>
-          <p className={`availability ${record.active ? '' : 'inactive'}`}>
-            <span />
-            {record.active ? 'Disponible' : 'Inactivo'}
-          </p>
-        </div>
-        {!editing && (
-          <button
-            className="button secondary"
-            onClick={async () => {
-              if (await leaveConfiguration()) {
-                setEditing('information');
-                setNotice('');
-              }
-            }}
-          >
-            Editar agente
-          </button>
-        )}
-      </div>
-      <Notice error>{error}</Notice>
-      <Notice>{notice}</Notice>
-      <div className="agent-workspace">
-        <div className="agent-configuration">
-          <nav className="agent-tabs" aria-label="Secciones del agente">
-            {[
-              ['instructions', 'Instrucciones'],
-              ['tools', 'Herramientas'],
-              ['knowledge', 'Contexto'],
-              ['test', 'Probar'],
-            ].map(([key, label]) => (
-              <button
-                key={key}
-                className="button"
-                aria-current={
-                  !editing || editing !== 'information'
-                    ? tab === key
-                      ? 'page'
-                      : undefined
-                    : undefined
-                }
-                onClick={() => selectTab(key)}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          {editing ? (
-            <>
-              <h2 className="agent-editor-title">
-                {editing === 'information'
-                  ? 'Editar agente'
-                  : editing === 'instructions'
-                    ? 'Editar instrucciones'
-                    : 'Editar herramientas'}
-              </h2>
-              <RecordForm
-                key={editing}
-                agentSection={editing}
-                resource="ai_agents"
-                record={record}
-                version={version}
-                setDirty={configDirty}
-                confirm={confirm}
-                onSaved={() => {
-                  configDirty(false);
-                  setEditing(false);
-                  refresh();
-                  setNotice('Cambios guardados.');
-                }}
-                onCancel={async () => {
-                  if (await leaveConfiguration()) setEditing(false);
-                }}
-              />
-              {editing === 'information' && (
-                <>
-                  <details className="technical-details">
-                    <summary>Conexión IA</summary>
-                    <AgentIntegration id={record.id} refresh={refresh} version={version} />
-                  </details>
-                  <div className="agent-danger">
-                    <button className="text-button danger-text" disabled={deleting} onClick={erase}>
-                      {deleting ? 'Eliminando…' : 'Eliminar agente'}
-                    </button>
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              {tab === 'instructions' && (
-                <>
-                  <AssociationDetail
-                    title="Instrucciones"
-                    resource="prompts"
-                    ids={record.prompt_ids}
-                    version={version}
-                    open={open}
-                    preview
-                  />
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setEditing('instructions');
-                    }}
-                  >
-                    <Icon name="plus" /> Editar instrucciones
-                  </button>
-                </>
-              )}
-              {tab === 'knowledge' && (
-                <AgentKnowledge id={record.id} confirm={confirm} setDirty={configDirty} />
-              )}
-              {tab === 'tools' && (
-                <>
-                  <AssociationDetail
-                    title="Herramientas disponibles"
-                    resource="tools"
-                    ids={record.tool_ids}
-                    version={version}
-                    open={open}
-                    preview
-                  />
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setEditing('tools');
-                    }}
-                  >
-                    <Icon name="plus" /> Editar herramientas
-                  </button>
-                </>
-              )}
-            </>
-          )}
-          <div hidden={tab !== 'test' || !!editing} className="agent-playground">
-            <AgentTestPanel id={record.id} setDirty={testDirty} />
-          </div>
-        </div>
-      </div>
-    </>
-  );
+function AgentWorkspace({ record, version, refresh, open, confirm, setDirty, erase, deleting, error }) {
+  return <AgentEditor {...{ record, version, refresh, open, confirm, setDirty, error }}
+    information={(report, close) => <><RecordForm resource="ai_agents" agentSection="information" record={record} version={version} setDirty={report} confirm={confirm} onSaved={() => { close(); refresh(); }} onCancel={async () => { if (await confirm('Cerrar edición', 'Se descartarán los cambios de nombre y disponibilidad sin guardar.', 'Cerrar')) close(); }}/><button className="text-button danger-text" disabled={deleting} onClick={erase}>Eliminar agente</button></>}
+    associations={(report, close) => <RecordForm resource="ai_agents" agentSection="instructions" record={record} version={version} setDirty={report} confirm={confirm} onSaved={close} onCancel={async () => { if (await confirm('Cerrar selección', 'Se conservarán las instrucciones ya asociadas.', 'Cerrar')) close(); }}/>} />;
 }
 
 function RecordFields({ resource, record, open, omit = [] }) {
